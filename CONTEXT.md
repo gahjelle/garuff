@@ -1,0 +1,74 @@
+# garuff
+
+Personal and opinionated Python linter rules aimed at coding agents. garuff runs
+*inside a target project*, reads that project's configuration, and reports where
+the project's code and agent files break garuff's conventions.
+
+## Language
+
+**Project**:
+The target codebase garuff is pointed at, rooted at the directory containing its
+`pyproject.toml`. Found by walking up from the current directory to the nearest
+`pyproject.toml`. The project root anchors config, `per-file-ignores` globs,
+project-scope rules, and default lint paths.
+_Avoid_: Repo (garuff configures a project, which may be nested in a repo)
+
+**Rule**:
+A single convention garuff enforces, identified by a stable code (e.g. `GAC009`).
+A rule is the thing you enable, ignore, or configure. It is a first-class,
+self-describing object carrying its code, check, optional fixer, optional
+configuration, and — because garuff targets coding assistants — an agent-facing
+explanation in three parts: a terse **summary** (the per-violation line), a
+**rationale** (why the convention exists), and a **fix** (the prescribed correct
+form). The rationale and fix are shown once per fired rule and via `garuff
+explain`.
+_Avoid_: Lint, policy, convention (as a noun for the addressable unit)
+
+**Rule code**:
+The stable identifier of a rule (e.g. `GAC009`). Load-bearing: users reference it
+in configuration, so it does not change once published. A category prefix plus a
+number.
+
+**Violation**:
+A single instance of a rule being broken at a specific location (path, line, col).
+_Avoid_: Error, warning, issue
+
+**Check**:
+The act — and the callable — of applying one rule to one input. A rule's check
+produces zero or more violations.
+_Avoid_: Using "check" as a synonym for "rule".
+
+**Registry**:
+The central collection of all known rules. garuff iterates the registry, filters
+by configuration, and runs each active rule's check.
+
+**Rule category**:
+The subject matter a rule is about, encoded as the letter prefix of its code.
+Categorization is by *subject matter, not file extension*: a rule about Python
+naming that also scans Markdown is still a code rule.
+
+**GAC** (code rules):
+Rules about how you write Python and its prose — the source and the
+docstrings/naming within it.
+
+**GAA** (agent-file rules):
+Rules about how the repository's agent-facing scaffolding is structured — ADRs
+today, potentially `AGENTS.md`, `CONTEXT.md`, and `docs/agents/` layout later.
+These are rules about repository artifacts, not about Python.
+
+**Rule scope**:
+The kind of input a rule consumes. Orthogonal to category. One of:
+- **source** — a parsed Python module (AST), one `.py` file at a time.
+- **text** — the raw text of a linted file, any extension.
+- **project** — the project structure as a whole, checked once (e.g. the ADR
+  directory). Not tied to a single file/line/column.
+
+**Ignore**:
+Turning a rule off globally so it never runs. Configured once for the project.
+The only way to silence a project-scope rule.
+
+**Suppression**:
+Silencing a rule at a specific location while it stays active elsewhere. Applies
+only to source-scope and Python text-scope rules — never to project-scope rules
+or to Markdown. Two forms: an inline directive in the file, or a path-pattern
+entry in configuration.
