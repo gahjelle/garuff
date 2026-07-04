@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     import ast
     from collections.abc import Iterator
 
-    from garuff.violation import Violation
+    from garuff.schemas import Violation
 
 
 @dataclass(kw_only=True)

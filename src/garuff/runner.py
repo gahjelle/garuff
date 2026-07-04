@@ -1,41 +1,14 @@
 """Run pipeline — gather files, parse each once, run source rules, collect."""
 
 import ast
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from garuff.rule import SourceRule
-from garuff.violation import Location, Violation
+from garuff.schemas import Location, ParseFailure, RunResult, Violation
 
 if TYPE_CHECKING:
     from garuff.registry import Registry
-
-
-@dataclass(kw_only=True)
-class ParseFailure:
-    """A file that could not be parsed, with the location of the failure."""
-
-    location: Location
-    message: str
-
-    def render(self, *, root: Path) -> str:
-        """Format as `path:line:col: could not parse: message`."""
-        return f"{self.location.render(root=root)}: could not parse: {self.message}"
-
-
-@dataclass(kw_only=True)
-class RunResult:
-    """The outcome of a run: violations found, files linted, and files skipped."""
-
-    violations: list[Violation]
-    linted: int
-    parse_failures: list[ParseFailure] = field(default_factory=list)
-
-    @property
-    def skipped(self) -> int:
-        """How many files were skipped because they could not be parsed."""
-        return len(self.parse_failures)
 
 
 def gather_python_files(*, paths: list[Path]) -> list[Path]:

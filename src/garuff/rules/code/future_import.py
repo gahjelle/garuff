@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from garuff.rule import SourceRule
-from garuff.violation import Location, Violation
+from garuff.schemas import Location, Violation
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

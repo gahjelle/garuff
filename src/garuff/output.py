@@ -4,8 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from garuff.runner import ParseFailure
-    from garuff.violation import Violation
+    from garuff.schemas import ParseFailure, Violation
 
 
 def render_violations(*, violations: list[Violation], root: Path) -> str:
