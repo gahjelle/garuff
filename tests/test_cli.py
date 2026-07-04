@@ -194,12 +194,12 @@ def test_summary_splits_counts_by_extension(
     assert "1 .md file, 2 .py files linted: 0 violations" in captured.err
 
 
-def test_flags_possessive_my_in_python(
+def test_flags_possessive_prefix_in_python(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """A possessive-`my` name in a .py source is flagged as GAC011."""
+    """A possessive `my` prefix in a .py source is flagged as GAC011."""
     make_project(tmp_path, {"src/mod.py": "my_thing = 1\n"})
     monkeypatch.chdir(tmp_path)
 
@@ -210,12 +210,12 @@ def test_flags_possessive_my_in_python(
     assert code == 1
 
 
-def test_flags_possessive_my_in_markdown(
+def test_flags_possessive_prefix_in_markdown(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """A possessive-`my` name in a Markdown file is flagged as GAC011."""
+    """A possessive `my` prefix in a Markdown file is flagged as GAC011."""
     make_project(tmp_path, {"docs/guide.md": "See the `MyClass` helper.\n"})
     monkeypatch.chdir(tmp_path)
 
