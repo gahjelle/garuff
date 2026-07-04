@@ -17,7 +17,8 @@ garuff follows the structure settled in [`docs/structure-plan.md`](../structure-
 - `config.py` — project discovery + strict `[tool.garuff]` parsing/validation.
 - `suppression.py` — parse `# garuff: ignore[...]` directives; filter violations.
 - `runner.py` — orchestration of the run pipeline.
-- `violation.py` / `output.py` — the `Violation` value + rendering (terse lines + explain appendix).
+- `schemas.py` — the passive result/value types (`Location`, `Violation`, `ParseFailure`, `RunResult`); a low-dependency leaf module. See [ADR-0004](../adr/0004-passive-result-types-live-in-schemas.md).
+- `output.py` — rendering of those types (terse locator lines + explain appendix).
 - `rules/code/` (`GAC`) and `rules/agent/` (`GAA`) — the rules themselves.
 
 These modules are created test-first as real work lands; this describes the intended shape, not a scaffold to fill in upfront.
@@ -48,6 +49,7 @@ The **authoritative catalog** of these rules — codes, scopes, exact semantics,
 
 ## Style
 
+- **Always read text with `encoding="utf-8"`.** `Path.read_text()` and `open()` default to the platform's *locale* encoding, which on Windows is not UTF-8 and varies machine to machine — a latent portability bug. garuff assumes every file it lints, Python and Markdown alike, is UTF-8; pass `encoding="utf-8"` explicitly on every text read. (A future GAC rule flagging encoding-less reads is a natural candidate.)
 - Prefer `pathlib` over `os.path` for filesystem operations.
 - Keep the `cli` layer thin — application logic lives in domain modules, not CLI handlers.
 - Avoid underscore-prefixed names for "private" symbols — the visual noise outweighs the benefit. Control the public API with `__all__` when a module needs to distinguish exported names from internal helpers.

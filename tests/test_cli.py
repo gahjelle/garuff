@@ -14,11 +14,13 @@ def make_project(root: Path, files: dict[str, str]) -> None:
 
     files maps a project-relative path to its text content.
     """
-    (root / "pyproject.toml").write_text('[project]\nname = "sample"\n')
+    (root / "pyproject.toml").write_text(
+        '[project]\nname = "sample"\n', encoding="utf-8"
+    )
     for relpath, content in files.items():
         path = root / relpath
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content)
+        path.write_text(content, encoding="utf-8")
 
 
 def test_flags_future_annotations_import(
@@ -62,7 +64,7 @@ def test_missing_pyproject_exits_two(
     """With no pyproject.toml up the tree, garuff errors clearly (exit 2)."""
     work = tmp_path / "loose"
     work.mkdir()
-    (work / "mod.py").write_text("x = 1\n")
+    (work / "mod.py").write_text("x = 1\n", encoding="utf-8")
     monkeypatch.chdir(work)
 
     code = main(["mod.py"])
@@ -127,7 +129,7 @@ def test_defaults_lint_both_src_and_tests(
     assert "tests/test_a.py:1:1: GAC001" in out
 
 
-def test_unparseable_file_is_reported_and_skipped(
+def test_unparsable_file_is_reported_and_skipped(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -148,7 +150,7 @@ def test_unparseable_file_is_reported_and_skipped(
     assert code == 1
     assert "src/bad.py" in captured.err
     assert "could not parse" in captured.err
-    assert "1 .py-file linted" in captured.err
+    assert "1 .py file linted" in captured.err
     assert "1 skipped" in captured.err
 
 
@@ -164,6 +166,86 @@ def test_prints_summary_to_stderr(
     main(["src"])
 
     captured = capsys.readouterr()
-    assert "1 .py-file" in captured.err
+    assert "1 .py file" in captured.err
     assert "1 violation" in captured.err
     assert "GAC001" not in captured.err  # locator lines stay on stdout
+
+
+def test_summary_splits_counts_by_extension(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """The summary counts each extension separately, .md before .py."""
+    make_project(
+        tmp_path,
+        {
+            "src/a.py": "x = 1\n",
+            "src/b.py": "y = 2\n",
+            "docs/guide.md": "All clear here.\n",
+        },
+    )
+    monkeypatch.chdir(tmp_path)
+
+    code = main(["src", "docs"])
+
+    captured = capsys.readouterr()
+    assert code == 0
+    assert "1 .md file, 2 .py files linted: 0 violations" in captured.err
+
+
+def test_flags_possessive_prefix_in_python(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A possessive `my` prefix in a .py source is flagged as GAC011."""
+    make_project(tmp_path, {"src/mod.py": "my_thing = 1\n"})
+    monkeypatch.chdir(tmp_path)
+
+    code = main(["src"])
+
+    out = capsys.readouterr().out
+    assert "src/mod.py:1:1: GAC011" in out
+    assert code == 1
+
+
+def test_flags_possessive_prefix_in_markdown(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A possessive `my` prefix in a Markdown file is flagged as GAC011."""
+    make_project(tmp_path, {"docs/guide.md": "See the `MyClass` helper.\n"})
+    monkeypatch.chdir(tmp_path)
+
+    code = main(["docs/guide.md"])
+
+    out = capsys.readouterr().out
+    assert "docs/guide.md:1:10: GAC011" in out
+    assert code == 1
+
+
+def test_source_and_text_violations_reported_line_sorted(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """One file with a source (GAC001) and text (GAC011) hit reports both, line-sorted.
+
+    The text hit is on line 1 (a docstring), the source hit on line 2 (the
+    __future__ import) — so a runner that emits source rules before text rules
+    would misorder them without the (path, line, col) sort.
+    """
+    source = '"""my_helper docstring."""\nfrom __future__ import annotations\n'
+    make_project(tmp_path, {"src/mod.py": source})
+    monkeypatch.chdir(tmp_path)
+
+    code = main(["src"])
+
+    lines = capsys.readouterr().out.splitlines()
+    assert code == 1
+    assert lines == [
+        "src/mod.py:1:4: GAC011 no possessive `my` prefix",
+        "src/mod.py:2:1: GAC001 no `from __future__ import annotations`",
+    ]

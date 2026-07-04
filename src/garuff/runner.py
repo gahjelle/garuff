@@ -1,80 +1,68 @@
-"""Run pipeline — gather files, parse each once, run source rules, collect."""
+"""Run pipeline — gather files, parse each once, run source and text rules."""
 
 import ast
-from dataclasses import dataclass, field
+from collections import Counter
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from garuff.rule import SourceRule
-from garuff.violation import Location, Violation
+from garuff.rule import SourceRule, TextRule
+from garuff.schemas import Location, ParseFailure, RunResult, Violation
 
 if TYPE_CHECKING:
     from garuff.registry import Registry
 
-
-@dataclass(kw_only=True)
-class ParseFailure:
-    """A file that could not be parsed, with the location of the failure."""
-
-    location: Location
-    message: str
-
-    def render(self, *, root: Path) -> str:
-        """Format as `path:line:col: could not parse: message`."""
-        return f"{self.location.render(root=root)}: could not parse: {self.message}"
+# The file extensions garuff lints. Source rules run on `.py` only; text rules
+# run on the raw text of every gathered file.
+LINTED_SUFFIXES = frozenset({".py", ".md"})
 
 
-@dataclass(kw_only=True)
-class RunResult:
-    """The outcome of a run: violations found, files linted, and files skipped."""
-
-    violations: list[Violation]
-    linted: int
-    parse_failures: list[ParseFailure] = field(default_factory=list)
-
-    @property
-    def skipped(self) -> int:
-        """How many files were skipped because they could not be parsed."""
-        return len(self.parse_failures)
-
-
-def gather_python_files(*, paths: list[Path]) -> list[Path]:
-    """Collect the .py files under the given paths, de-duplicated and sorted."""
+def gather_files(*, paths: list[Path]) -> list[Path]:
+    """Collect the linted files under the given paths, de-duplicated and sorted."""
     files: set[Path] = set()
     for path in paths:
         if path.is_dir():
-            files.update(path.rglob("*.py"))
-        elif path.suffix == ".py":
+            files.update(
+                found
+                for found in path.rglob("*")
+                if found.suffix in LINTED_SUFFIXES and found.is_file()
+            )
+        elif path.suffix in LINTED_SUFFIXES:
             files.add(path)
     return sorted(files)
 
 
 def run(*, paths: list[Path], registry: Registry) -> RunResult:
-    """Run every active source rule over the gathered .py files."""
+    """Run every active source and text rule over the gathered files."""
     source_rules = [rule for rule in registry.rules if isinstance(rule, SourceRule)]
+    text_rules = [rule for rule in registry.rules if isinstance(rule, TextRule)]
     violations: list[Violation] = []
     parse_failures: list[ParseFailure] = []
-    linted = 0
-    for file in gather_python_files(paths=paths):
-        try:
-            module = ast.parse(file.read_text())
-        except SyntaxError as error:
-            parse_failures.append(
-                ParseFailure(
-                    location=Location(
-                        path=file,
-                        line=error.lineno or 1,
-                        col=error.offset or 1,
+    linted: Counter[str] = Counter()
+    for file in gather_files(paths=paths):
+        text = file.read_text(encoding="utf-8")
+        if file.suffix == ".py":
+            try:
+                module = ast.parse(text)
+            except SyntaxError as error:
+                parse_failures.append(
+                    ParseFailure(
+                        location=Location(
+                            path=file,
+                            line=error.lineno or 1,
+                            col=error.offset or 1,
+                        ),
+                        message=error.msg,
                     ),
-                    message=error.msg,
-                ),
-            )
-            continue
-        linted += 1
-        for rule in source_rules:
-            violations.extend(rule.check(module, path=file))
+                )
+                continue
+            for rule in source_rules:
+                violations.extend(rule.check(module, path=file))
+        for rule in text_rules:
+            violations.extend(rule.check(text, path=file))
+        linted[file.suffix] += 1
+    violations.sort(key=lambda v: v.location.sort_key)
     return RunResult(
         violations=violations,
-        linted=linted,
+        linted_by_suffix=dict(linted),
         parse_failures=parse_failures,
     )

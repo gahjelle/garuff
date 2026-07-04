@@ -42,21 +42,21 @@ Codes are **load-bearing** (see `CONTEXT.md`) — they must be pinned before the
 rules land. The renumber from repolint's `WNG*` reordered rules, so the old and
 new codes do **not** line up one-to-one. Full mapping:
 
-| old `WNG` | rule | new code |
-| --- | --- | --- |
-| WNG001 | no `from __future__` | GAC001 |
-| WNG002 | models inherit `FrozenModel`/`StrictModel`, not `BaseModel` | GAC002 |
-| WNG003 | `Protocol` methods omit `...` | GAC003 |
-| WNG004 | docstrings use single backticks | GAC004 |
-| WNG005 | homogeneous sequences use `list`, not `tuple[T, ...]` | GAC005 |
-| WNG006 | return `Self`, not a forward-ref string | GAC006 |
-| WNG008 | ruff-exempt modules stay at runtime | GAC007 |
+| old `WNG`  | rule                                                           | new code   |
+| ---------- | -------------------------------------------------------------- | ---------- |
+| WNG001     | no `from __future__`                                           | GAC001     |
+| WNG002     | models inherit `FrozenModel`/`StrictModel`, not `BaseModel`    | GAC002     |
+| WNG003     | `Protocol` methods omit `...`                                  | GAC003     |
+| WNG004     | docstrings use single backticks                                | GAC004     |
+| WNG005     | homogeneous sequences use `list`, not `tuple[T, ...]`          | GAC005     |
+| WNG006     | return `Self`, not a forward-ref string                        | GAC006     |
+| WNG008     | ruff-exempt modules stay at runtime                            | GAC007     |
 | **WNG009** | **≤1 positional arg** (configurable via `max-positional-args`) | **GAC008** |
-| WNG012 | `@dataclass(kw_only=True)` | GAC009 |
-| WNG013 | docstring on every function/method | GAC010 |
-| WNG007 | possessive-`my` (text scope) | GAC011 |
-| WNG010 | ADR duplicate prefix | GAA001 |
-| WNG011 | ADR consecutive numbering | GAA002 |
+| WNG012     | `@dataclass(kw_only=True)`                                     | GAC009     |
+| WNG013     | docstring on every function/method                             | GAC010     |
+| WNG007     | possessive-`my` (text scope)                                   | GAC011     |
+| WNG010     | ADR duplicate prefix                                           | GAA001     |
+| WNG011     | ADR consecutive numbering                                      | GAA002     |
 
 `GAC008` (the positional-args rule, `WNG009`) is the **only configurable code
 rule**, so it is the running example for `[tool.garuff.rules.<CODE>]` options and
@@ -68,7 +68,7 @@ inline suppression throughout `CONTEXT.md`, this file, and ADR-0001.
 src/garuff/
 ├── __init__.py        # main() — thin shim into cli
 ├── cli.py             # argparse: default lint command + `explain` subcommand; exit codes
-├── violation.py       # Violation dataclass + terse-line rendering
+├── schemas.py         # passive result/value types: Location, Violation, ParseFailure, RunResult (ADR-0004)
 ├── rule.py            # SourceRule / TextRule / ProjectRule
 │                      #   shared: code, summary, rationale, fix, config schema, optional fixer
 ├── registry.py        # collects all rules; lookup by code; strict "unknown code" authority
