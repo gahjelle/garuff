@@ -5,7 +5,11 @@ import sys
 from pathlib import Path
 
 from garuff.config import ProjectNotFoundError, discover_root
-from garuff.output import render_summary, render_violations
+from garuff.output import (
+    render_parse_failures,
+    render_summary,
+    render_violations,
+)
 from garuff.rules import REGISTRY
 from garuff.runner import run
 
@@ -36,10 +40,13 @@ def main(argv: list[str] | None = None) -> int:
     if result.violations:
         locators = render_violations(violations=result.violations, root=root)
         sys.stdout.write(locators + "\n")
+    if result.parse_failures:
+        failures = render_parse_failures(failures=result.parse_failures, root=root)
+        sys.stderr.write(failures + "\n")
     summary = render_summary(
         linted=result.linted,
         skipped=result.skipped,
         violations=len(result.violations),
     )
     sys.stderr.write(summary + "\n")
-    return 1 if result.violations else 0
+    return 1 if result.violations or result.parse_failures else 0

@@ -127,6 +127,31 @@ def test_defaults_lint_both_src_and_tests(
     assert "tests/test_a.py:1:1: GAC001" in out
 
 
+def test_unparseable_file_is_reported_and_skipped(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A file that can't be parsed is reported, skipped, and exits 1."""
+    make_project(
+        tmp_path,
+        {
+            "src/good.py": "x = 1\n",
+            "src/bad.py": "def broken(\n",
+        },
+    )
+    monkeypatch.chdir(tmp_path)
+
+    code = main(["src"])
+
+    captured = capsys.readouterr()
+    assert code == 1
+    assert "src/bad.py" in captured.err
+    assert "could not parse" in captured.err
+    assert "1 .py-file linted" in captured.err
+    assert "1 skipped" in captured.err
+
+
 def test_prints_summary_to_stderr(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
