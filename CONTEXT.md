@@ -14,7 +14,7 @@ project-scope rules, and default lint paths.
 _Avoid_: Repo (garuff configures a project, which may be nested in a repo)
 
 **Rule**:
-A single convention garuff enforces, identified by a stable code (e.g. `GAC009`).
+A single convention garuff enforces, identified by a stable code (e.g. `GAC008`).
 A rule is the thing you enable, ignore, or configure. It is a first-class,
 self-describing object carrying its code, check, optional fixer, optional
 configuration, and — because garuff targets coding assistants — an agent-facing
@@ -25,7 +25,7 @@ explain`.
 _Avoid_: Lint, policy, convention (as a noun for the addressable unit)
 
 **Rule code**:
-The stable identifier of a rule (e.g. `GAC009`). Load-bearing: users reference it
+The stable identifier of a rule (e.g. `GAC008`). Load-bearing: users reference it
 in configuration, so it does not change once published. A category prefix plus a
 number.
 
