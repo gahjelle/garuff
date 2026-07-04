@@ -4,7 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from garuff.config import discover_root
+from garuff.config import ProjectNotFoundError, discover_root
 from garuff.output import render_summary, render_violations
 from garuff.rules import REGISTRY
 from garuff.runner import run
@@ -16,9 +16,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("paths", nargs="*", help="files or directories to lint")
     args = parser.parse_args(argv)
 
-    root = discover_root(start=Path.cwd())
+    try:
+        root = discover_root(start=Path.cwd())
+    except ProjectNotFoundError as error:
+        sys.stderr.write(f"{error}\n")
+        return 2
+
     if args.paths:
         paths = [Path.cwd() / given for given in args.paths]
+        missing = [path for path in paths if not path.exists()]
+        if missing:
+            for path in missing:
+                sys.stderr.write(f"path does not exist: {path}\n")
+            return 2
     else:
         paths = [root / "src", root / "tests"]
 
