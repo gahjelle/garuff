@@ -4,7 +4,8 @@ import argparse
 import sys
 from pathlib import Path
 
-from garuff.config import ProjectNotFoundError, discover_root
+from garuff.config import discover_root
+from garuff.exceptions import ProjectNotFoundError
 from garuff.output import (
     render_parse_failures,
     render_summary,

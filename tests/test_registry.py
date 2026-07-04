@@ -2,6 +2,7 @@
 
 import pytest
 
+from garuff.exceptions import DuplicateRuleCodeError, UnknownRuleCodeError
 from garuff.registry import Registry
 from garuff.rule import SourceRule
 
@@ -11,7 +12,7 @@ def test_rejects_duplicate_codes() -> None:
     first = SourceRule(code="GAC001", summary="first")
     second = SourceRule(code="GAC001", summary="second")
 
-    with pytest.raises(ValueError, match="GAC001"):
+    with pytest.raises(DuplicateRuleCodeError, match="GAC001"):
         Registry(rules=[first, second])
 
 
@@ -27,5 +28,5 @@ def test_lookup_unknown_code_raises() -> None:
     """An unknown code raises rather than returning nothing."""
     registry = Registry(rules=[])
 
-    with pytest.raises(KeyError):
+    with pytest.raises(UnknownRuleCodeError):
         registry.lookup("GAC999")

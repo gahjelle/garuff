@@ -2,9 +2,7 @@
 
 from pathlib import Path
 
-
-class ProjectNotFoundError(Exception):
-    """No pyproject.toml was found walking up from the starting directory."""
+from garuff.exceptions import ProjectNotFoundError
 
 
 def discover_root(*, start: Path) -> Path:
