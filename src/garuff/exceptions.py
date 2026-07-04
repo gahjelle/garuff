@@ -1,17 +1,17 @@
-"""garuff's exception hierarchy — every custom error derives from GaruffException."""
+"""garuff's exception hierarchy — every custom error derives from GaruffError."""
 
 
-class GaruffException(Exception):  # noqa: N818 — base is deliberately "Exception"
+class GaruffError(Exception):
     """Base class for every error garuff raises."""
 
 
-class ProjectNotFoundError(GaruffException):
+class ProjectNotFoundError(GaruffError):
     """No pyproject.toml was found walking up from the starting directory."""
 
 
-class DuplicateRuleCodeError(GaruffException):
+class DuplicateRuleCodeError(GaruffError):
     """Two rules were registered under the same code."""
 
 
-class UnknownRuleCodeError(GaruffException):
+class UnknownRuleCodeError(GaruffError):
     """A rule code was requested that no registered rule provides."""
