@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 from garuff.config import discover_root
-from garuff.output import render_violations
+from garuff.output import render_summary, render_violations
 from garuff.rules import REGISTRY
 from garuff.runner import run
 
@@ -22,7 +22,14 @@ def main(argv: list[str] | None = None) -> int:
     else:
         paths = [root / "src", root / "tests"]
 
-    violations = run(paths=paths, registry=REGISTRY)
-    if violations:
-        sys.stdout.write(render_violations(violations=violations, root=root) + "\n")
-    return 1 if violations else 0
+    result = run(paths=paths, registry=REGISTRY)
+    if result.violations:
+        locators = render_violations(violations=result.violations, root=root)
+        sys.stdout.write(locators + "\n")
+    summary = render_summary(
+        linted=result.linted,
+        skipped=result.skipped,
+        violations=len(result.violations),
+    )
+    sys.stderr.write(summary + "\n")
+    return 1 if result.violations else 0

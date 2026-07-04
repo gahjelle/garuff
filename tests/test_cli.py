@@ -35,3 +35,20 @@ def test_flags_future_annotations_import(
     out = capsys.readouterr()
     assert "src/mod.py:1:1: GAC001" in out.out
     assert code == 1
+
+
+def test_prints_summary_to_stderr(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A summary line goes to stderr, leaving stdout for locator lines only."""
+    make_project(tmp_path, {"src/mod.py": "from __future__ import annotations\n"})
+    monkeypatch.chdir(tmp_path)
+
+    main(["src"])
+
+    captured = capsys.readouterr()
+    assert "1 .py-file" in captured.err
+    assert "1 violation" in captured.err
+    assert "GAC001" not in captured.err  # locator lines stay on stdout

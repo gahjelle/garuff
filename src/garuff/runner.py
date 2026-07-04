@@ -1,14 +1,24 @@
 """Run pipeline — gather files, parse each once, run source rules, collect."""
 
 import ast
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from garuff.rule import SourceRule
+from garuff.violation import Violation
 
 if TYPE_CHECKING:
     from garuff.registry import Registry
-    from garuff.violation import Violation
+
+
+@dataclass(kw_only=True)
+class RunResult:
+    """The outcome of a run: the violations found and how many files were seen."""
+
+    violations: list[Violation]
+    linted: int
+    skipped: int = 0
 
 
 def gather_python_files(*, paths: list[Path]) -> list[Path]:
@@ -22,12 +32,14 @@ def gather_python_files(*, paths: list[Path]) -> list[Path]:
     return sorted(files)
 
 
-def run(*, paths: list[Path], registry: Registry) -> list[Violation]:
+def run(*, paths: list[Path], registry: Registry) -> RunResult:
     """Run every active source rule over the gathered .py files."""
     source_rules = [rule for rule in registry.rules if isinstance(rule, SourceRule)]
     violations: list[Violation] = []
+    linted = 0
     for file in gather_python_files(paths=paths):
         module = ast.parse(file.read_text())
+        linted += 1
         for rule in source_rules:
             violations.extend(rule.check(module, path=file))
-    return violations
+    return RunResult(violations=violations, linted=linted)
