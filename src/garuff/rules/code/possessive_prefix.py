@@ -1,8 +1,10 @@
 """GAC011 — no possessive `my` prefix.
 
-A name that opens with a first-person possessive reads as a placeholder the
-author never renamed. This is a text-scope rule: it scans the raw file, so it
-fires in Markdown as well as Python.
+A name that opens with a first-person possessive is often used in examples, but
+actually provides a bad example to  users on how variables, functions, and
+classes should be named. These are never "mine", and examples should also use
+proper, descriptive naming. This is a text-scope rule: it scans the raw file, so
+it fires in Markdown as well as Python.
 """
 
 import re
