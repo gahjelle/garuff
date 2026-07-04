@@ -14,11 +14,13 @@ def make_project(root: Path, files: dict[str, str]) -> None:
 
     files maps a project-relative path to its text content.
     """
-    (root / "pyproject.toml").write_text('[project]\nname = "sample"\n')
+    (root / "pyproject.toml").write_text(
+        '[project]\nname = "sample"\n', encoding="utf-8"
+    )
     for relpath, content in files.items():
         path = root / relpath
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content)
+        path.write_text(content, encoding="utf-8")
 
 
 def test_flags_future_annotations_import(
@@ -62,7 +64,7 @@ def test_missing_pyproject_exits_two(
     """With no pyproject.toml up the tree, garuff errors clearly (exit 2)."""
     work = tmp_path / "loose"
     work.mkdir()
-    (work / "mod.py").write_text("x = 1\n")
+    (work / "mod.py").write_text("x = 1\n", encoding="utf-8")
     monkeypatch.chdir(work)
 
     code = main(["mod.py"])
@@ -127,7 +129,7 @@ def test_defaults_lint_both_src_and_tests(
     assert "tests/test_a.py:1:1: GAC001" in out
 
 
-def test_unparseable_file_is_reported_and_skipped(
+def test_unparsable_file_is_reported_and_skipped(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],

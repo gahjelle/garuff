@@ -29,8 +29,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.paths:
         paths = [Path.cwd() / given for given in args.paths]
-        missing = [path for path in paths if not path.exists()]
-        if missing:
+        if missing := [path for path in paths if not path.exists()]:
             for path in missing:
                 sys.stderr.write(f"path does not exist: {path}\n")
             return 2

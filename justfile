@@ -3,10 +3,6 @@ default: check
 # Run all quality gates in order, stopping on the first failure.
 check: fmt-check lint typecheck dogfood test
 
-# Auto-format the codebase with ruff.
-fmt:
-    uv run ruff format -q
-
 # Check formatting without writing changes.
 fmt-check:
     uv run ruff format --check -q
@@ -26,6 +22,10 @@ dogfood:
 # Run the test suite quietly.
 test *args:
     uv run pytest -q {{args}}
+
+# Auto-format the codebase with ruff.
+fmt:
+    uv run ruff format
 
 # Auto-fix lint issues then reformat.
 fix:

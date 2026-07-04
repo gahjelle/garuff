@@ -14,7 +14,7 @@ def render_violations(*, violations: list[Violation], root: Path) -> str:
 
 
 def render_parse_failures(*, failures: list[ParseFailure], root: Path) -> str:
-    """Render each unparseable file as a `path:line:col: could not parse` line."""
+    """Render each unparsable file as a `path:line:col: could not parse` line."""
     return "\n".join(failure.render(root=root) for failure in failures)
 
 
