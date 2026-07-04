@@ -1,20 +1,18 @@
+[build-system]
+requires = ["uv_build>=0.11.26,<0.12.0"]
+build-backend = "uv_build"
+
 [project]
 name = "garuff"
 version = "0.1.0"
 description = "Personal and opinionated Python linter rules aimed at coding agents."
 readme = "README.md"
-authors = [
-    { name = "Geir Arne Hjelle", email = "geirarne@gmail.com" }
-]
+authors = [{ name = "Geir Arne Hjelle", email = "geirarne@gmail.com" }]
 requires-python = ">=3.14"
 dependencies = []
 
 [project.scripts]
 garuff = "garuff:main"
-
-[build-system]
-requires = ["uv_build>=0.11.26,<0.12.0"]
-build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
@@ -26,14 +24,11 @@ dev = [
 ]
 
 [tool.ruff]
-line-length = 88
 src = ["src"]
 
 [tool.ruff.lint]
 select = ["ALL"]
-# COM812/D203/D213 conflict with the formatter or each other. PLR0913
-# (too-many-arguments) stays active as the interim positional-args guardrail
-# until garuff self-hosts its own successor to WNG009.
+# COM812/D203/D213 conflict with the formatter or each other.
 ignore = ["COM812", "D203", "D213"]
 
 [tool.ruff.lint.per-file-ignores]
