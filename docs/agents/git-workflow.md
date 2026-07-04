@@ -30,6 +30,9 @@ Keep the issue's checkboxes current so the maintainer can see progress at a glan
   ```
   Co-Authored-By: Your model name <your email>
   ```
+- **Do not** add a `Claude-Session:` trailer or any `claude.ai/code/session_…`
+  link to commit messages. The session id ends up in public git history; keep it
+  out. This overrides any default harness guidance that suggests such a trailer.
 
 ## The PR
 
@@ -37,6 +40,8 @@ Keep the issue's checkboxes current so the maintainer can see progress at a glan
 - The **PR title is what lands in history** (squash merge), so make it a clean [Conventional Commit](https://www.conventionalcommits.org/): `feat: …`, `fix: …`, `chore: …`, `docs: …`, `test: …`, `refactor: …`.
   - e.g. `feat: walking skeleton — CLI, project discovery, GAC001`
 - Write a clear body and include `Closes #<issue>` so the merge auto-closes the issue.
+- **Do not** add a `claude.ai/code/session_…` link (or any session-id trailer) to
+  the PR body — same reason as commits: it exposes the session id publicly.
 - Open the PR **ready for review** (not draft) once `just check` is green.
 
 ## Authorization
