@@ -150,7 +150,7 @@ def test_unparsable_file_is_reported_and_skipped(
     assert code == 1
     assert "src/bad.py" in captured.err
     assert "could not parse" in captured.err
-    assert "1 file linted" in captured.err
+    assert "1 .py file linted" in captured.err
     assert "1 skipped" in captured.err
 
 
@@ -166,9 +166,32 @@ def test_prints_summary_to_stderr(
     main(["src"])
 
     captured = capsys.readouterr()
-    assert "1 file" in captured.err
+    assert "1 .py file" in captured.err
     assert "1 violation" in captured.err
     assert "GAC001" not in captured.err  # locator lines stay on stdout
+
+
+def test_summary_splits_counts_by_extension(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """The summary counts each extension separately, .md before .py."""
+    make_project(
+        tmp_path,
+        {
+            "src/a.py": "x = 1\n",
+            "src/b.py": "y = 2\n",
+            "docs/guide.md": "All clear here.\n",
+        },
+    )
+    monkeypatch.chdir(tmp_path)
+
+    code = main(["src", "docs"])
+
+    captured = capsys.readouterr()
+    assert code == 0
+    assert "1 .md file, 2 .py files linted: 0 violations" in captured.err
 
 
 def test_flags_possessive_my_in_python(

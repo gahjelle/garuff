@@ -72,8 +72,13 @@ class RunResult:
     """The outcome of a run: violations found, files linted, and files skipped."""
 
     violations: list[Violation]
-    linted: int
+    linted_by_suffix: dict[str, int]
     parse_failures: list[ParseFailure] = field(default_factory=list)
+
+    @property
+    def linted(self) -> int:
+        """How many files were linted, across every extension."""
+        return sum(self.linted_by_suffix.values())
 
     @property
     def skipped(self) -> int:

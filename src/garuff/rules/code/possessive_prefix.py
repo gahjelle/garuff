@@ -24,11 +24,11 @@ if TYPE_CHECKING:
 POSSESSIVE_PATTERN = re.compile(r"(?<![A-Za-z0-9])([Mm][Yy][_-]|My[A-Z])")
 
 
-class PossessiveMy(TextRule):
-    """Flag possessive-`my` prefixes anywhere in a file's raw text."""
+class PossessivePrefix(TextRule):
+    """Flag a possessive `my` prefix anywhere in a file's raw text."""
 
     def check(self, text: str, *, path: Path) -> Iterator[Violation]:
-        """Yield a violation for each possessive-`my` prefix in the text."""
+        """Yield a violation for each possessive `my` prefix in the text."""
         for match in POSSESSIVE_PATTERN.finditer(text):
             yield Violation(
                 rule=self,
@@ -38,7 +38,7 @@ class PossessiveMy(TextRule):
             )
 
 
-POSSESSIVE_MY = PossessiveMy(
+POSSESSIVE_PREFIX = PossessivePrefix(
     code="GAC011",
     summary="no possessive `my` prefix",
 )

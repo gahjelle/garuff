@@ -1,6 +1,7 @@
 """Run pipeline — gather files, parse each once, run source and text rules."""
 
 import ast
+from collections import Counter
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -36,7 +37,7 @@ def run(*, paths: list[Path], registry: Registry) -> RunResult:
     text_rules = [rule for rule in registry.rules if isinstance(rule, TextRule)]
     violations: list[Violation] = []
     parse_failures: list[ParseFailure] = []
-    linted = 0
+    linted: Counter[str] = Counter()
     for file in gather_files(paths=paths):
         text = file.read_text(encoding="utf-8")
         if file.suffix == ".py":
@@ -58,11 +59,11 @@ def run(*, paths: list[Path], registry: Registry) -> RunResult:
                 violations.extend(rule.check(module, path=file))
         for rule in text_rules:
             violations.extend(rule.check(text, path=file))
-        linted += 1
+        linted[file.suffix] += 1
     violations.sort(key=locator_key)
     return RunResult(
         violations=violations,
-        linted=linted,
+        linted_by_suffix=dict(linted),
         parse_failures=parse_failures,
     )
 

@@ -44,7 +44,7 @@ def main(argv: list[str] | None = None) -> int:
         failures = render_parse_failures(failures=result.parse_failures, root=root)
         sys.stderr.write(failures + "\n")
     summary = render_summary(
-        linted=result.linted,
+        linted_by_suffix=result.linted_by_suffix,
         skipped=result.skipped,
         violations=len(result.violations),
     )
