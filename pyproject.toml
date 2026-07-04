@@ -38,6 +38,9 @@ ignore = ["COM812", "D203", "D213"]
 # 3.14 dataclasses still read field annotations at decoration time, so imports
 # used only in those annotations must stay at runtime, not move to TYPE_CHECKING.
 exempt-modules = ["pathlib", "datetime", "typing"]
+# The same is true for first-party types used as dataclass fields (e.g. a rule
+# referenced by a Violation): treat @dataclass annotations as runtime references.
+runtime-evaluated-decorators = ["dataclasses.dataclass"]
 
 [tool.ty.src]
 include = ["src", "tests"]

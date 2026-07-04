@@ -104,3 +104,8 @@ src/garuff/
 
 Bare `# garuff: ignore`; Markdown inline suppression; unused-directive detection
 (a future rule); `--config`/`--root` flags; `select`/allowlist mode; JSON output.
+
+File exclusion (gitignore-aware selection, hidden-directory / `.venv` /
+vendored-tree skipping). Until then, `rglob("*.py")` lints everything under the
+given paths; the default `src/`/`tests/` paths make this safe in practice, but
+pointing garuff at a tree containing a virtualenv would lint it.
