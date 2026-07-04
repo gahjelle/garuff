@@ -150,7 +150,7 @@ def test_unparsable_file_is_reported_and_skipped(
     assert code == 1
     assert "src/bad.py" in captured.err
     assert "could not parse" in captured.err
-    assert "1 .py-file linted" in captured.err
+    assert "1 file linted" in captured.err
     assert "1 skipped" in captured.err
 
 
@@ -166,6 +166,63 @@ def test_prints_summary_to_stderr(
     main(["src"])
 
     captured = capsys.readouterr()
-    assert "1 .py-file" in captured.err
+    assert "1 file" in captured.err
     assert "1 violation" in captured.err
     assert "GAC001" not in captured.err  # locator lines stay on stdout
+
+
+def test_flags_possessive_my_in_python(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A possessive-`my` name in a .py source is flagged as GAC011."""
+    make_project(tmp_path, {"src/mod.py": "my_thing = 1\n"})
+    monkeypatch.chdir(tmp_path)
+
+    code = main(["src"])
+
+    out = capsys.readouterr().out
+    assert "src/mod.py:1:1: GAC011" in out
+    assert code == 1
+
+
+def test_flags_possessive_my_in_markdown(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A possessive-`my` name in a Markdown file is flagged as GAC011."""
+    make_project(tmp_path, {"docs/guide.md": "See the `MyClass` helper.\n"})
+    monkeypatch.chdir(tmp_path)
+
+    code = main(["docs/guide.md"])
+
+    out = capsys.readouterr().out
+    assert "docs/guide.md:1:10: GAC011" in out
+    assert code == 1
+
+
+def test_source_and_text_violations_reported_line_sorted(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """One file with a source (GAC001) and text (GAC011) hit reports both, line-sorted.
+
+    The text hit is on line 1 (a docstring), the source hit on line 2 (the
+    __future__ import) — so a runner that emits source rules before text rules
+    would misorder them without the (path, line, col) sort.
+    """
+    source = '"""my_helper docstring."""\nfrom __future__ import annotations\n'
+    make_project(tmp_path, {"src/mod.py": source})
+    monkeypatch.chdir(tmp_path)
+
+    code = main(["src"])
+
+    lines = capsys.readouterr().out.splitlines()
+    assert code == 1
+    assert lines == [
+        "src/mod.py:1:4: GAC011 no possessive `my` prefix",
+        "src/mod.py:2:1: GAC001 no `from __future__ import annotations`",
+    ]

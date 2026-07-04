@@ -31,3 +31,12 @@ class SourceRule(Rule, abc.ABC):
     @abc.abstractmethod
     def check(self, module: ast.Module, *, path: Path) -> Iterator[Violation]:
         """Yield a violation for each place this rule is broken in the module."""
+
+
+@dataclass(kw_only=True)
+class TextRule(Rule, abc.ABC):
+    """A rule that consumes the raw text of one linted file, any extension."""
+
+    @abc.abstractmethod
+    def check(self, text: str, *, path: Path) -> Iterator[Violation]:
+        """Yield a violation for each place this rule is broken in the text."""

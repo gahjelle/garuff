@@ -15,9 +15,12 @@ lint:
 typecheck:
     uv run ty check -q
 
-# Dogfood: lint garuff's own code with garuff.
+# Dogfood: lint garuff's own source with garuff.
+# Scoped to src/ (not tests/): the text-scope rules (e.g. GAC011) would flag the
+# intentional bad-pattern examples in test fixtures, which per-file-ignores will
+# exempt once config lands (#4). Matches tests/test_dogfood.py.
 dogfood:
-    uv run garuff
+    uv run garuff src
 
 # Run the test suite quietly.
 test *args:

@@ -19,7 +19,7 @@ def render_parse_failures(*, failures: list[ParseFailure], root: Path) -> str:
 
 def render_summary(*, linted: int, skipped: int, violations: int) -> str:
     """Render the one-line run summary for stderr."""
-    files = f"{linted} .py-file{plural_suffix(linted)} linted"
+    files = f"{linted} file{plural_suffix(linted)} linted"
     if skipped:
         files += f" ({skipped} skipped)"
     return f"{files}: {violations} violation{plural_suffix(violations)}"
