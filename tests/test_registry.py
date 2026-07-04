@@ -1,0 +1,31 @@
+"""Registry behaviour: the strict authority on rule codes."""
+
+import pytest
+
+from garuff.registry import Registry
+from garuff.rule import SourceRule
+
+
+def test_rejects_duplicate_codes() -> None:
+    """Two rules sharing a code cannot be registered together."""
+    first = SourceRule(code="GAC001", summary="first")
+    second = SourceRule(code="GAC001", summary="second")
+
+    with pytest.raises(ValueError, match="GAC001"):
+        Registry(rules=[first, second])
+
+
+def test_lookup_returns_rule_by_code() -> None:
+    """A known code resolves to its rule."""
+    rule = SourceRule(code="GAC001", summary="a rule")
+    registry = Registry(rules=[rule])
+
+    assert registry.lookup("GAC001") is rule
+
+
+def test_lookup_unknown_code_raises() -> None:
+    """An unknown code raises rather than returning nothing."""
+    registry = Registry(rules=[])
+
+    with pytest.raises(KeyError):
+        registry.lookup("GAC999")
