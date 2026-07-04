@@ -4,6 +4,7 @@
 adds a `check` for the kind of input it consumes. See ADR-0003.
 """
 
+import abc
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -24,9 +25,9 @@ class Rule:
 
 
 @dataclass(kw_only=True)
-class SourceRule(Rule):
+class SourceRule(Rule, abc.ABC):
     """A rule that consumes one parsed Python module (AST) at a time."""
 
+    @abc.abstractmethod
     def check(self, module: ast.Module, *, path: Path) -> Iterator[Violation]:
         """Yield a violation for each place this rule is broken in the module."""
-        raise NotImplementedError

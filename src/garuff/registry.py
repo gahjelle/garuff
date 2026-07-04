@@ -11,7 +11,7 @@ class Registry:
     """Holds every known rule; the strict authority on rule codes."""
 
     rules: list[Rule]
-    _by_code: dict[str, Rule] = field(init=False)
+    by_code: dict[str, Rule] = field(init=False)
 
     def __post_init__(self) -> None:
         """Index rules by code, rejecting duplicate codes."""
@@ -21,12 +21,12 @@ class Registry:
                 message = f"duplicate rule code: {rule.code}"
                 raise DuplicateRuleCodeError(message)
             by_code[rule.code] = rule
-        self._by_code = by_code
+        self.by_code = by_code
 
     def lookup(self, code: str) -> Rule:
         """Return the rule with this code, or raise if it is unknown."""
         try:
-            return self._by_code[code]
+            return self.by_code[code]
         except KeyError:
             message = f"unknown rule code: {code}"
             raise UnknownRuleCodeError(message) from None

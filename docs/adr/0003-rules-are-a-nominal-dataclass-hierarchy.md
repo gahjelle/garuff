@@ -4,8 +4,10 @@ A rule is modelled as a concrete `@dataclass(kw_only=True)` base `Rule` (carryin
 the scope-independent identity and explanation — `code`, `summary`, later
 `rationale`/`fix`/config schema) with scope subclasses (`SourceRule`, and later
 `TextRule`/`ProjectRule`) that inherit those fields and add a scope-specific
-`check` method. Concrete rules subclass the scope class; the explicit registry
-holds them as `Rule`.
+`check` method. Scope classes are abstract (`abc.ABC` + `@abstractmethod`) so
+that instantiating a scope without implementing `check` fails at construction
+time, not at run time. Concrete rules subclass the scope class; the explicit
+registry holds them as `Rule`.
 
 ## Considered options
 
@@ -31,5 +33,8 @@ holds them as `Rule`.
   (identity + explanation), rule **scope** = the kind of input the check
   consumes.
 - The `check` seam (`check(self, module: ast.Module, path: Path)` for source
-  scope) is load-bearing: every rule is written against it, so changing its
-  signature later is a breaking change across the whole rule set.
+scope) is load-bearing: every rule is written against it, so changing its
+signature later is a breaking change across the whole rule set.
+- Scope classes are abstract (`abc.ABC`) to prevent partial rules from
+entering the registry — a missing `check` override is caught at instantiation,
+not during a lint run.

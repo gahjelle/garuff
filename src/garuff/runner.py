@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from garuff.rule import SourceRule
-from garuff.violation import Violation
+from garuff.violation import Violation, display_path
 
 if TYPE_CHECKING:
     from garuff.registry import Registry
@@ -20,6 +20,11 @@ class ParseFailure:
     line: int
     col: int
     message: str
+
+    def render(self, *, root: Path) -> str:
+        """Format as `path:line:col: could not parse: message`."""
+        location = f"{display_path(self.path, root=root)}:{self.line}:{self.col}"
+        return f"{location}: could not parse: {self.message}"
 
 
 @dataclass(kw_only=True)

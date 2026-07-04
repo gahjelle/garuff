@@ -4,13 +4,13 @@ import pytest
 
 from garuff.exceptions import DuplicateRuleCodeError, UnknownRuleCodeError
 from garuff.registry import Registry
-from garuff.rule import SourceRule
+from garuff.rules.code.future_import import FutureAnnotationsImport
 
 
 def test_rejects_duplicate_codes() -> None:
     """Two rules sharing a code cannot be registered together."""
-    first = SourceRule(code="GAC001", summary="first")
-    second = SourceRule(code="GAC001", summary="second")
+    first = FutureAnnotationsImport(code="GAC001", summary="first")
+    second = FutureAnnotationsImport(code="GAC001", summary="second")
 
     with pytest.raises(DuplicateRuleCodeError, match="GAC001"):
         Registry(rules=[first, second])
@@ -18,7 +18,7 @@ def test_rejects_duplicate_codes() -> None:
 
 def test_lookup_returns_rule_by_code() -> None:
     """A known code resolves to its rule."""
-    rule = SourceRule(code="GAC001", summary="a rule")
+    rule = FutureAnnotationsImport(code="GAC001", summary="a rule")
     registry = Registry(rules=[rule])
 
     assert registry.lookup("GAC001") is rule
