@@ -2,7 +2,7 @@
 
 garuff exists to catch conventions ruff and ty cannot express, so ruff is almost
 always running in the same project. We therefore give garuff its own namespaced
-inline-suppression directive — `# garuff: ignore[GAC009]` — instead of reusing
+inline-suppression directive — `# garuff: ignore[GAC008]` — instead of reusing
 flake8/ruff's `# noqa`. Codes are required; there is no bare form.
 
 ## Considered options

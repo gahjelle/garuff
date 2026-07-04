@@ -11,16 +11,20 @@ blueprint, not a spec of behaviour.
   auto-discovery).
 - **Category prefixes by subject matter.** `GAC` = code rules (Python + its
   prose), `GAA` = agent-file rules (repository scaffolding, e.g. ADRs).
-  Renumbered contiguously from the old `WNG*`: `GAC001–011`, `GAA001–002`.
+  Renumbered contiguously from the old `WNG*`: `GAC001–011`, `GAA001–002`. The
+  renumber was not a straight `WNG00N → GAC00N` — it reordered rules, moving the
+  sole text-scope rule (possessive-`my`, old WNG007) to the end as `GAC011`. Full
+  mapping in [Rule numbering](#rule-numbering) below.
 - **Three rule scopes.** `source` (per-`.py` AST), `text` (raw text, any
   extension), `project` (whole structure, checked once).
 - **Configuration** in `[tool.garuff]`, addressed by code only:
   - `ignore = [...]` — global, all rules on by default. Only way to silence a
     project-scope rule.
-  - `[tool.garuff.rules.<CODE>]` — per-rule options (e.g. `max-positional-args`).
+  - `[tool.garuff.rules.<CODE>]` — per-rule options (e.g. `[tool.garuff.rules.GAC008]`
+    with `max-positional-args`; GAC008 is the running example throughout these docs).
   - `[tool.garuff.per-file-ignores]` — glob → codes.
   - Strict: unknown key/code, wrong type, and empty globs all error.
-- **Inline suppression** — `# garuff: ignore[GAC009]` (codes required, no bare
+- **Inline suppression** — `# garuff: ignore[GAC008]` (codes required, no bare
   form). Source-scope and Python text-scope only; never project-scope or
   Markdown. See ADR-0001.
 - **Zero runtime dependencies** — stdlib only; config validated by hand against
@@ -31,6 +35,32 @@ blueprint, not a spec of behaviour.
 - **Project discovery** — walk up to the nearest `pyproject.toml`; that
   directory is the project root. Config optional, file required. No
   `--config`/`--root` flag for now.
+
+## Rule numbering
+
+Codes are **load-bearing** (see `CONTEXT.md`) — they must be pinned before the
+rules land. The renumber from repolint's `WNG*` reordered rules, so the old and
+new codes do **not** line up one-to-one. Full mapping:
+
+| old `WNG` | rule | new code |
+| --- | --- | --- |
+| WNG001 | no `from __future__` | GAC001 |
+| WNG002 | models inherit `FrozenModel`/`StrictModel`, not `BaseModel` | GAC002 |
+| WNG003 | `Protocol` methods omit `...` | GAC003 |
+| WNG004 | docstrings use single backticks | GAC004 |
+| WNG005 | homogeneous sequences use `list`, not `tuple[T, ...]` | GAC005 |
+| WNG006 | return `Self`, not a forward-ref string | GAC006 |
+| WNG008 | ruff-exempt modules stay at runtime | GAC007 |
+| **WNG009** | **≤1 positional arg** (configurable via `max-positional-args`) | **GAC008** |
+| WNG012 | `@dataclass(kw_only=True)` | GAC009 |
+| WNG013 | docstring on every function/method | GAC010 |
+| WNG007 | possessive-`my` (text scope) | GAC011 |
+| WNG010 | ADR duplicate prefix | GAA001 |
+| WNG011 | ADR consecutive numbering | GAA002 |
+
+`GAC008` (the positional-args rule, `WNG009`) is the **only configurable code
+rule**, so it is the running example for `[tool.garuff.rules.<CODE>]` options and
+inline suppression throughout `CONTEXT.md`, this file, and ADR-0001.
 
 ## Package layout
 
