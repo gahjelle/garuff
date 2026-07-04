@@ -60,15 +60,9 @@ def run(*, paths: list[Path], registry: Registry) -> RunResult:
         for rule in text_rules:
             violations.extend(rule.check(text, path=file))
         linted[file.suffix] += 1
-    violations.sort(key=locator_key)
+    violations.sort(key=lambda v: v.location.sort_key)
     return RunResult(
         violations=violations,
         linted_by_suffix=dict(linted),
         parse_failures=parse_failures,
     )
-
-
-def locator_key(violation: Violation) -> tuple[str, int, int]:
-    """Sort key placing violations in `path`, then line, then column order."""
-    location = violation.location
-    return (str(location.path), location.line, location.col)

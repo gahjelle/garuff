@@ -36,6 +36,11 @@ class Location:
         col = offset - text.rfind("\n", 0, offset)
         return cls(path=path, line=line, col=col)
 
+    @property
+    def sort_key(self) -> tuple[str, int, int]:
+        """Sort key placing locations in path, then line, then column order."""
+        return (str(self.path), self.line, self.col)
+
     def render(self, *, root: Path) -> str:
         """Format as `path:line:col`, path relative to root."""
         return f"{display_path(self.path, root=root)}:{self.line}:{self.col}"
