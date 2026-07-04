@@ -1,4 +1,4 @@
-"""The Violation value object and its terse locator rendering."""
+"""The Location value object and Violation with its terse locator rendering."""
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,15 +15,27 @@ def display_path(path: Path, *, root: Path) -> str:
 
 
 @dataclass(kw_only=True)
-class Violation:
-    """A single instance of a rule being broken at a specific location."""
+class Location:
+    """A position in a source file."""
 
-    rule: Rule
     path: Path
     line: int
     col: int
 
     def render(self, *, root: Path) -> str:
+        """Format as `path:line:col`, path relative to root."""
+        return f"{display_path(self.path, root=root)}:{self.line}:{self.col}"
+
+
+@dataclass(kw_only=True)
+class Violation:
+    """A single instance of a rule being broken at a specific location."""
+
+    rule: Rule
+    location: Location
+
+    def render(self, *, root: Path) -> str:
         """Format as `path:line:col: CODE summary`, path relative to root."""
-        location = f"{display_path(self.path, root=root)}:{self.line}:{self.col}"
-        return f"{location}: {self.rule.code} {self.rule.summary}"
+        return (
+            f"{self.location.render(root=root)}: {self.rule.code} {self.rule.summary}"
+        )

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from garuff.rule import SourceRule
-from garuff.violation import Violation, display_path
+from garuff.violation import Location, Violation
 
 if TYPE_CHECKING:
     from garuff.registry import Registry
@@ -16,15 +16,12 @@ if TYPE_CHECKING:
 class ParseFailure:
     """A file that could not be parsed, with the location of the failure."""
 
-    path: Path
-    line: int
-    col: int
+    location: Location
     message: str
 
     def render(self, *, root: Path) -> str:
         """Format as `path:line:col: could not parse: message`."""
-        location = f"{display_path(self.path, root=root)}:{self.line}:{self.col}"
-        return f"{location}: could not parse: {self.message}"
+        return f"{self.location.render(root=root)}: could not parse: {self.message}"
 
 
 @dataclass(kw_only=True)
@@ -64,9 +61,11 @@ def run(*, paths: list[Path], registry: Registry) -> RunResult:
         except SyntaxError as error:
             parse_failures.append(
                 ParseFailure(
-                    path=file,
-                    line=error.lineno or 1,
-                    col=error.offset or 1,
+                    location=Location(
+                        path=file,
+                        line=error.lineno or 1,
+                        col=error.offset or 1,
+                    ),
                     message=error.msg,
                 ),
             )

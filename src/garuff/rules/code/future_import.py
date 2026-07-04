@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from garuff.rule import SourceRule
-from garuff.violation import Violation
+from garuff.violation import Location, Violation
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -27,9 +27,9 @@ class FutureAnnotationsImport(SourceRule):
             ):
                 yield Violation(
                     rule=self,
-                    path=path,
-                    line=node.lineno,
-                    col=node.col_offset + 1,
+                    location=Location(
+                        path=path, line=node.lineno, col=node.col_offset + 1
+                    ),
                 )
 
 
