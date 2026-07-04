@@ -4,6 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from garuff import branding
 from garuff.config import discover_root
 from garuff.exceptions import ProjectNotFoundError
 from garuff.output import (
@@ -17,7 +18,7 @@ from garuff.runner import run
 
 def main(argv: list[str] | None = None) -> int:
     """Lint the given paths (default `src/`, `tests/`); return the exit code."""
-    parser = argparse.ArgumentParser(prog="garuff")
+    parser = argparse.ArgumentParser(prog=branding.PROGRAM_NAME)
     parser.add_argument("paths", nargs="*", help="files or directories to lint")
     args = parser.parse_args(argv)
 

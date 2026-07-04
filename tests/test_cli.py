@@ -1,12 +1,10 @@
 """End-to-end CLI behaviour: drive main() against tmp_path fixture projects."""
 
 from pathlib import Path
-from typing import TYPE_CHECKING
 
-from garuff import main
+import pytest
 
-if TYPE_CHECKING:
-    import pytest
+from garuff import branding, main
 
 
 def make_project(root: Path, files: dict[str, str]) -> None:
@@ -249,3 +247,17 @@ def test_source_and_text_violations_reported_line_sorted(
         "src/mod.py:1:4: GAC011 no possessive `my` prefix",
         "src/mod.py:2:1: GAC001 no `from __future__ import annotations`",
     ]
+
+
+def test_help_usage_reflects_program_name(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """The usage line is branded from branding.PROGRAM_NAME, not a hardcoded literal."""
+    monkeypatch.setattr(branding, "PROGRAM_NAME", "rebrandtest")
+
+    with pytest.raises(SystemExit) as exc:
+        main(["--help"])
+
+    assert exc.value.code == 0
+    assert "rebrandtest" in capsys.readouterr().out
