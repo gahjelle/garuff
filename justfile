@@ -1,7 +1,7 @@
 default: check
 
 # Run all quality gates in order, stopping on the first failure.
-check: fmt-check lint typecheck lint-self test
+check: fmt-check lint typecheck dogfood test
 
 # Auto-format the codebase with ruff.
 fmt:
@@ -20,7 +20,7 @@ typecheck:
     uv run ty check -q
 
 # Dogfood: lint garuff's own code with garuff.
-lint-self:
+dogfood:
     uv run garuff
 
 # Run the test suite quietly.
