@@ -68,7 +68,7 @@ inline suppression throughout `CONTEXT.md`, this file, and ADR-0001.
 src/garuff/
 ├── __init__.py        # main() — thin shim into cli
 ├── cli.py             # argparse: default lint command + `explain` subcommand; exit codes
-├── violation.py       # Violation dataclass + terse-line rendering
+├── schemas.py         # passive result/value types: Location, Violation, ParseFailure, RunResult (ADR-0004)
 ├── rule.py            # SourceRule / TextRule / ProjectRule
 │                      #   shared: code, summary, rationale, fix, config schema, optional fixer
 ├── registry.py        # collects all rules; lookup by code; strict "unknown code" authority
