@@ -1,0 +1,45 @@
+"""Shared fixtures: the throwaway fixture project every rule test lints.
+
+garuff runs *inside a target project* — it walks up to the nearest
+`pyproject.toml`, then lints from there. So a test lays down a disposable
+project on disk under `tmp_path` and points garuff at it. The `project` fixture
+is that builder behind one seam, so no test re-implements it.
+"""
+
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+import pytest
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+DEFAULT_PYPROJECT = '[project]\nname = "sample"\n'
+
+
+@pytest.fixture
+def project(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> Callable[[dict[str, str]], Path]:
+    """Build a throwaway project under `tmp_path` and chdir into it.
+
+    `files` maps a project-relative path to its text content; parent
+    directories are created as needed. A `pyproject.toml` is written from a
+    default `[project]` stub unless `files` supplies its own. Returns the
+    project root.
+    """
+
+    def build(files: dict[str, str]) -> Path:
+        """Write `pyproject.toml` and `files`, then chdir to the root."""
+        if "pyproject.toml" not in files:
+            (tmp_path / "pyproject.toml").write_text(
+                DEFAULT_PYPROJECT, encoding="utf-8"
+            )
+        for relpath, content in files.items():
+            path = tmp_path / relpath
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding="utf-8")
+        monkeypatch.chdir(tmp_path)
+        return tmp_path
+
+    return build
