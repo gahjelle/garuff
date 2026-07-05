@@ -8,10 +8,10 @@ from garuff.rules.code.possessive_prefix import POSSESSIVE_PREFIX
 
 REGISTRY = Registry(
     rules=[
+        ADR_CONSECUTIVE,
+        ADR_DUPLICATE,
         FUTURE_ANNOTATIONS_IMPORT,
         POSSESSIVE_PREFIX,
-        ADR_DUPLICATE,
-        ADR_CONSECUTIVE,
     ]
 )
 
