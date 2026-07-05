@@ -22,3 +22,16 @@ def test_own_src_is_clean(
 
     captured = capsys.readouterr()
     assert code == 0, captured.out
+
+
+def test_own_adr_directory_passes_gaa_rules(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """The repo's own docs/adr/ has no duplicate or gapped ADR numbers."""
+    monkeypatch.chdir(PROJECT_ROOT)
+
+    code = main(["src", "docs/adr"])
+
+    captured = capsys.readouterr()
+    assert code == 0, captured.out

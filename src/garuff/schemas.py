@@ -23,11 +23,11 @@ def display_path(path: Path, *, root: Path) -> str:
 
 @dataclass(kw_only=True)
 class Location:
-    """A position in a source file."""
+    """A position in a source file, or a bare directory for project scope."""
 
     path: Path
-    line: int
-    col: int
+    line: int | None = None
+    col: int | None = None
 
     @classmethod
     def from_offset(cls, *, text: str, offset: int, path: Path) -> Self:
@@ -39,10 +39,12 @@ class Location:
     @property
     def sort_key(self) -> tuple[str, int, int]:
         """Sort key placing locations in path, then line, then column order."""
-        return (str(self.path), self.line, self.col)
+        return (str(self.path), self.line or 0, self.col or 0)
 
     def render(self, *, root: Path) -> str:
-        """Format as `path:line:col`, path relative to root."""
+        """Format as `path:line:col`, or bare `path/` when directory-level."""
+        if self.line is None:
+            return f"{display_path(self.path, root=root)}/"
         return f"{display_path(self.path, root=root)}:{self.line}:{self.col}"
 
 
@@ -52,12 +54,12 @@ class Violation:
 
     rule: Rule
     location: Location
+    detail: str | None = None
 
     def render(self, *, root: Path) -> str:
-        """Format as `path:line:col: CODE summary`, path relative to root."""
-        return (
-            f"{self.location.render(root=root)}: {self.rule.code} {self.rule.summary}"
-        )
+        """Format as `path:line:col: CODE detail`, falling back to the summary."""
+        text = self.detail or self.rule.summary
+        return f"{self.location.render(root=root)}: {self.rule.code} {text}"
 
 
 @dataclass(kw_only=True)

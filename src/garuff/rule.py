@@ -40,3 +40,12 @@ class TextRule(Rule, abc.ABC):
     @abc.abstractmethod
     def check(self, text: str, *, path: Path) -> Iterator[Violation]:
         """Yield a violation for each place this rule is broken in the text."""
+
+
+@dataclass(kw_only=True)
+class ProjectRule(Rule, abc.ABC):
+    """A rule that consumes the gathered project file list, checked once."""
+
+    @abc.abstractmethod
+    def check(self, project_files: list[Path]) -> Iterator[Violation]:
+        """Yield a violation for each place this rule is broken in the project."""

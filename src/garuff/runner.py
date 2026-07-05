@@ -5,7 +5,7 @@ from collections import Counter
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from garuff.rule import SourceRule, TextRule
+from garuff.rule import ProjectRule, SourceRule, TextRule
 from garuff.schemas import Location, ParseFailure, RunResult, Violation
 
 if TYPE_CHECKING:
@@ -35,10 +35,12 @@ def run(*, paths: list[Path], registry: Registry) -> RunResult:
     """Run every active source and text rule over the gathered files."""
     source_rules = [rule for rule in registry.rules if isinstance(rule, SourceRule)]
     text_rules = [rule for rule in registry.rules if isinstance(rule, TextRule)]
+    project_rules = [rule for rule in registry.rules if isinstance(rule, ProjectRule)]
     violations: list[Violation] = []
     parse_failures: list[ParseFailure] = []
     linted: Counter[str] = Counter()
-    for file in gather_files(paths=paths):
+    files = gather_files(paths=paths)
+    for file in files:
         text = file.read_text(encoding="utf-8")
         if file.suffix == ".py":
             try:
@@ -60,6 +62,8 @@ def run(*, paths: list[Path], registry: Registry) -> RunResult:
         for rule in text_rules:
             violations.extend(rule.check(text, path=file))
         linted[file.suffix] += 1
+    for rule in project_rules:
+        violations.extend(rule.check(files))
     violations.sort(key=lambda v: v.location.sort_key)
     return RunResult(
         violations=violations,
