@@ -18,7 +18,8 @@ A single convention garuff enforces, identified by a stable code (e.g. `GAC008`)
 A rule is the thing you enable, ignore, or configure. It is a first-class,
 self-describing object carrying its code, check, optional fixer, optional
 configuration, and — because garuff targets coding assistants — an agent-facing
-explanation in three parts: a terse **summary** (the per-violation line), a
+explanation in three parts: a terse **summary** (the default per-violation line,
+which a violation may override with location-specific detail), a
 **rationale** (why the convention exists), and a **fix** (the prescribed correct
 form). The rationale and fix are shown once per fired rule and via `garuff
 explain`.
@@ -30,7 +31,9 @@ in configuration, so it does not change once published. A category prefix plus a
 number.
 
 **Violation**:
-A single instance of a rule being broken at a specific location (path, line, col).
+A single instance of a rule being broken at a specific location. Source- and
+text-scope violations locate to a `path:line:col`; a project-scope violation
+locates to a directory (path only, no line or column).
 _Avoid_: Error, warning, issue
 
 **Check**:
