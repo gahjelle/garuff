@@ -7,6 +7,10 @@ from pathlib import Path
 # the project ever widens the prefix.
 ADR_NAME_RE = re.compile(r"^(\d{4})-.*\.md$")
 
+# The (parent, grandparent) directory names an ADR file must sit under,
+# innermost first: `docs/adr/0001-x.md`.
+ADR_PARENT_NAMES = ("adr", "docs")
+
 
 def iter_adr_groups(project_files: list[Path]) -> dict[Path, list[tuple[int, Path]]]:
     """Group ADR files by their containing `docs/adr/` directory.
@@ -16,7 +20,8 @@ def iter_adr_groups(project_files: list[Path]) -> dict[Path, list[tuple[int, Pat
     groups: dict[Path, list[tuple[int, Path]]] = {}
     for path in sorted(project_files):
         match = ADR_NAME_RE.match(path.name)
-        if not match or path.parent.name != "adr" or path.parent.parent.name != "docs":
+        parents = (path.parent.name, path.parent.parent.name)
+        if not match or parents != ADR_PARENT_NAMES:
             continue
         number = int(match.group(1))
         groups.setdefault(path.parent, []).append((number, path))
