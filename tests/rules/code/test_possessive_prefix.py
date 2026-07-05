@@ -5,15 +5,15 @@ no Python parse-validity concern; two end-to-end cases confirm the rule fires in
 both a `.py` source and a Markdown file.
 """
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 
-from garuff import main
-
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from pathlib import Path
+
+    from tests.lintrun import LintRun
 
 
 FLAGGED = [
@@ -39,57 +39,53 @@ IGNORED = [
 def test_flagged_forms(
     snippet: str,
     project: Callable[[dict[str, str]], Path],
-    capsys: pytest.CaptureFixture[str],
+    lint: Callable[[list[str]], LintRun],
 ) -> None:
     """Each possessive-`my` form is flagged as GAC011 (exit 1)."""
     project({"doc.md": f"{snippet}\n"})
 
-    code = main(["doc.md"])
+    run = lint(["doc.md"])
 
-    out = capsys.readouterr().out
-    assert "GAC011" in out
-    assert code == 1
+    assert "GAC011" in run.codes
+    assert run.exit_code == 1
 
 
 @pytest.mark.parametrize("snippet", IGNORED)
 def test_ignored_forms(
     snippet: str,
     project: Callable[[dict[str, str]], Path],
-    capsys: pytest.CaptureFixture[str],
+    lint: Callable[[list[str]], LintRun],
 ) -> None:
     """Non-possessive text is left alone (no GAC011, exit 0)."""
     project({"doc.md": f"{snippet}\n"})
 
-    code = main(["doc.md"])
+    run = lint(["doc.md"])
 
-    captured = capsys.readouterr()
-    assert "GAC011" not in captured.out
-    assert code == 0
+    assert "GAC011" not in run.codes
+    assert run.exit_code == 0
 
 
 def test_flags_possessive_prefix_in_python(
     project: Callable[[dict[str, str]], Path],
-    capsys: pytest.CaptureFixture[str],
+    lint: Callable[[list[str]], LintRun],
 ) -> None:
     """A possessive `my` prefix in a .py source is flagged as GAC011."""
     project({"src/mod.py": "my_thing = 1\n"})
 
-    code = main(["src"])
+    run = lint(["src"])
 
-    out = capsys.readouterr().out
-    assert "src/mod.py:1:1: GAC011" in out
-    assert code == 1
+    assert run.at("src/mod.py", 1, 1) == ["GAC011"]
+    assert run.exit_code == 1
 
 
 def test_flags_possessive_prefix_in_markdown(
     project: Callable[[dict[str, str]], Path],
-    capsys: pytest.CaptureFixture[str],
+    lint: Callable[[list[str]], LintRun],
 ) -> None:
     """A possessive `my` prefix in a Markdown file is flagged as GAC011."""
     project({"docs/guide.md": "See the `MyClass` helper.\n"})
 
-    code = main(["docs/guide.md"])
+    run = lint(["docs/guide.md"])
 
-    out = capsys.readouterr().out
-    assert "docs/guide.md:1:10: GAC011" in out
-    assert code == 1
+    assert run.at("docs/guide.md", 1, 10) == ["GAC011"]
+    assert run.exit_code == 1
