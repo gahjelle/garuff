@@ -24,3 +24,4 @@ When implementing an issue: branch off `main` in a new worktree (`agent/<issue#>
 - **Code conventions** — `docs/agents/code-conventions.md`.
 - **Quality gates** — `docs/agents/quality-gates.md`.
 - **Testing** — `docs/agents/testing.md`.
+- **Scratch directory** — `docs/agents/scratch.md`.
