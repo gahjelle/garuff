@@ -13,6 +13,7 @@ import pytest
 from garuff.config import Config, load
 from garuff.exceptions import ConfigError
 from garuff.rules import REGISTRY
+from garuff.rules.code.positional_args import PositionalArgs
 
 
 def write_pyproject(root: Path, garuff_table: str) -> None:
@@ -96,6 +97,51 @@ def test_unknown_top_level_key_is_a_config_error(tmp_path: Path) -> None:
 
     with pytest.raises(ConfigError, match="foo"):
         load(root=tmp_path, registry=REGISTRY)
+
+
+def test_options_for_an_optionless_rule_is_a_config_error(tmp_path: Path) -> None:
+    """A `rules.<CODE>` table for a rule with no options is a config error."""
+    write_pyproject(tmp_path, "[tool.garuff.rules.GAC001]\nfoo = 1\n")
+
+    with pytest.raises(ConfigError, match="GAC001"):
+        load(root=tmp_path, registry=REGISTRY)
+
+
+def test_unknown_option_key_is_a_config_error(tmp_path: Path) -> None:
+    """An option key the rule's schema does not declare is a config error."""
+    write_pyproject(tmp_path, "[tool.garuff.rules.GAC008]\nnonsense = 1\n")
+
+    with pytest.raises(ConfigError, match="nonsense"):
+        load(root=tmp_path, registry=REGISTRY)
+
+
+def test_wrong_option_type_is_a_config_error(tmp_path: Path) -> None:
+    """An option value of the wrong type is a config error, not a coercion."""
+    write_pyproject(
+        tmp_path, '[tool.garuff.rules.GAC008]\nmax-positional-args = "two"\n'
+    )
+
+    with pytest.raises(ConfigError, match="max-positional-args"):
+        load(root=tmp_path, registry=REGISTRY)
+
+
+def test_unknown_rule_code_in_options_is_a_config_error(tmp_path: Path) -> None:
+    """A `rules.<CODE>` table for an unknown code is a config error."""
+    write_pyproject(tmp_path, "[tool.garuff.rules.GAC999]\nmax-positional-args = 2\n")
+
+    with pytest.raises(ConfigError, match="GAC999"):
+        load(root=tmp_path, registry=REGISTRY)
+
+
+def test_option_override_is_baked_into_the_resolved_rule(tmp_path: Path) -> None:
+    """A valid override is baked onto the resolved rule via dataclasses.replace."""
+    write_pyproject(tmp_path, "[tool.garuff.rules.GAC008]\nmax-positional-args = 3\n")
+
+    config = load(root=tmp_path, registry=REGISTRY)
+
+    rule = config.registry.by_code["GAC008"]
+    assert isinstance(rule, PositionalArgs)
+    assert rule.options.max_positional_args == 3
 
 
 def test_per_file_ignores_are_parsed(tmp_path: Path) -> None:

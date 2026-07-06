@@ -83,3 +83,23 @@ def test_locates_at_the_def_line(
     run = lint(["src"])
 
     assert run.at("src/mod.py", 1, 1) == ["GAC008"]
+
+
+def test_max_positional_args_option_raises_the_ceiling(
+    project: Callable[[dict[str, str]], Path],
+    lint: Callable[[list[str]], LintRun],
+) -> None:
+    """`max-positional-args = 2` permits two positional params but not three."""
+    project(
+        {
+            "pyproject.toml": '[project]\nname = "sample"\n'
+            "[tool.garuff.rules.GAC008]\nmax-positional-args = 2\n",
+            "src/two.py": "def f(a, b):\n    pass\n",
+            "src/three.py": "def g(a, b, c):\n    pass\n",
+        }
+    )
+
+    run = lint(["src"])
+
+    assert run.at("src/two.py", 1, 1) == []
+    assert run.at("src/three.py", 1, 1) == ["GAC008"]
