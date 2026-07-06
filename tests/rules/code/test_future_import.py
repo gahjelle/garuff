@@ -8,12 +8,12 @@ from garuff import main
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from _pytest.capture import CaptureFixture
+    import pytest
 
 
 def test_flags_future_annotations_import(
     project: Callable[[dict[str, str]], Path],
-    capsys: CaptureFixture[str],
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     """A source file importing __future__ annotations is flagged as GAC001."""
     project({"src/mod.py": "from __future__ import annotations\n"})

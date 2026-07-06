@@ -15,8 +15,6 @@ from garuff import main
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from _pytest.capture import CaptureFixture
-
 
 FLAGGED = [
     "my_thing",
@@ -41,7 +39,7 @@ IGNORED = [
 def test_flagged_forms(
     snippet: str,
     project: Callable[[dict[str, str]], Path],
-    capsys: CaptureFixture[str],
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Each possessive-`my` form is flagged as GAC011 (exit 1)."""
     project({"doc.md": f"{snippet}\n"})
@@ -57,7 +55,7 @@ def test_flagged_forms(
 def test_ignored_forms(
     snippet: str,
     project: Callable[[dict[str, str]], Path],
-    capsys: CaptureFixture[str],
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Non-possessive text is left alone (no GAC011, exit 0)."""
     project({"doc.md": f"{snippet}\n"})
@@ -71,7 +69,7 @@ def test_ignored_forms(
 
 def test_flags_possessive_prefix_in_python(
     project: Callable[[dict[str, str]], Path],
-    capsys: CaptureFixture[str],
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     """A possessive `my` prefix in a .py source is flagged as GAC011."""
     project({"src/mod.py": "my_thing = 1\n"})
@@ -85,7 +83,7 @@ def test_flags_possessive_prefix_in_python(
 
 def test_flags_possessive_prefix_in_markdown(
     project: Callable[[dict[str, str]], Path],
-    capsys: CaptureFixture[str],
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     """A possessive `my` prefix in a Markdown file is flagged as GAC011."""
     project({"docs/guide.md": "See the `MyClass` helper.\n"})

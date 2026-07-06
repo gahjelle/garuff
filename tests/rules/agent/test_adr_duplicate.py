@@ -8,12 +8,12 @@ from garuff import main
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from _pytest.capture import CaptureFixture
+    import pytest
 
 
 def test_duplicate_adr_number_flags_gaa001(
     project: Callable[[dict[str, str]], Path],
-    capsys: CaptureFixture[str],
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     """A duplicate ADR number in scope is flagged as GAA001 at the directory."""
     project(

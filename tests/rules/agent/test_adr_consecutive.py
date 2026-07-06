@@ -8,12 +8,12 @@ from garuff import main
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from _pytest.capture import CaptureFixture
+    import pytest
 
 
 def test_gap_in_adr_numbers_flags_gaa002(
     project: Callable[[dict[str, str]], Path],
-    capsys: CaptureFixture[str],
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     """A gap in ADR numbering in scope is flagged as GAA002 at the directory."""
     project(
@@ -35,7 +35,7 @@ def test_gap_in_adr_numbers_flags_gaa002(
 
 def test_missing_0001_flags_gaa002(
     project: Callable[[dict[str, str]], Path],
-    capsys: CaptureFixture[str],
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Numbering that skips 0001 entirely is flagged as GAA002."""
     project(
