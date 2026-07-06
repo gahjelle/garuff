@@ -75,3 +75,23 @@ Silencing a rule at a specific location while it stays active elsewhere. Applies
 only to source-scope and Python text-scope rules — never to project-scope rules
 or to Markdown. Two forms: an inline directive in the file, or a path-pattern
 entry in configuration.
+
+**Configuration**:
+The project's settings for garuff, read from the `[tool.<name>]` table of its
+`pyproject.toml`. Addresses rules by code only: which to `ignore`, which to
+suppress per file, and each rule's options. Strictly validated — an unknown key,
+unknown code, wrong option type, or dead glob is an error, not a warning.
+_Avoid_: Settings, preferences, options (as the whole)
+
+**Rule option**:
+A named, typed knob a rule exposes for tuning its behaviour, carrying a default
+(e.g. GAC008's `max-positional-args`, default 1). Set per project under the
+rule's code. Distinct from Ignore and Suppression, which switch a rule off rather
+than tune it; a rule with no options cannot be configured.
+_Avoid_: Setting, parameter, flag
+
+**Per-file-ignore**:
+The path-pattern form of Suppression: a glob mapped to rule codes, silencing
+those codes for every linted file the glob matches. Globs are project-root
+anchored. The glob is matched, per file, when selecting which rules run.
+_Avoid_: Exclude, skip
