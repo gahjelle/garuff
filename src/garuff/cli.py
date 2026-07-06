@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 from garuff import branding
-from garuff.config import discover_root
+from garuff.config import discover_root, load
 from garuff.exceptions import ProjectNotFoundError
 from garuff.output import (
     render_parse_failures,
@@ -37,7 +37,8 @@ def main(argv: list[str] | None = None) -> int:
     else:
         paths = [root / "src", root / "tests"]
 
-    result = run(paths=paths, registry=REGISTRY)
+    config = load(root=root, registry=REGISTRY)
+    result = run(paths=paths, config=config)
     if result.violations:
         locators = render_violations(violations=result.violations, root=root)
         sys.stdout.write(locators + "\n")

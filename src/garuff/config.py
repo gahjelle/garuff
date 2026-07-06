@@ -25,9 +25,11 @@ class Config:
 
     `registry` is the resolved registry (globally-ignored rules removed, options
     baked). `per_file_ignores` pairs each suppression glob with the rule codes it
-    silences, matched per file when the runner selects which rules to run.
+    silences, matched per file when the runner selects which rules to run. `root`
+    is the project root those globs are anchored to (POSIX, root-relative).
     """
 
+    root: Path
     registry: Registry
     per_file_ignores: list[tuple[str, frozenset[str]]]
 
@@ -60,7 +62,14 @@ def load(*, root: Path, registry: Registry) -> Config:
     resolved = Registry(
         rules=[rule for rule in registry.rules if rule.code not in ignore]
     )
-    return Config(registry=resolved, per_file_ignores=[])
+
+    per_file_ignores: list[tuple[str, frozenset[str]]] = []
+    for glob, codes in table.get("per-file-ignores", {}).items():
+        for code in codes:
+            require_known_code(code, registry=registry)
+        per_file_ignores.append((glob, frozenset(codes)))
+
+    return Config(root=root, registry=resolved, per_file_ignores=per_file_ignores)
 
 
 def require_known_code(code: str, *, registry: Registry) -> None:
