@@ -20,19 +20,21 @@ def test_round_trip_parses_real_output(
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
-    """A real GAC011 violation parses into matching fields and raw stdout line."""
-    project({"src/mod.py": "my_thing = 1\n"})
+    """A real GAC001 violation parses into matching fields and raw stdout line."""
+    project({"src/mod.py": "from __future__ import annotations\n"})
 
     run = lint(["src"])
 
     assert run.exit_code == 1
-    assert run.stdout == "src/mod.py:1:1: GAC011 no possessive `my` prefix\n"
+    assert run.stdout == (
+        "src/mod.py:1:1: GAC001 no `from __future__ import annotations`\n"
+    )
     (violation,) = run.violations
     assert violation.path == "src/mod.py"
     assert violation.line == 1
     assert violation.col == 1
-    assert violation.code == "GAC011"
-    assert violation.message == "no possessive `my` prefix"
+    assert violation.code == "GAC001"
+    assert violation.message == "no `from __future__ import annotations`"
 
 
 def test_parses_project_scope_line_without_line_or_col() -> None:

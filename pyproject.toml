@@ -25,12 +25,19 @@ dev = [
 
 [tool.garuff]
 # garuff dogfoods its own rules; this table is the first real consumer of the
-# per-file-ignores feature. Under tests/, fixtures and helpers break these rules
-# by design — GAC008 (test helpers take several positional params) and GAC011
-# (the possessive-prefix rule's own test data is full of `my_thing`, `MyClass`,
-# …) — so silence both there rather than contort the tests.
+# per-file-ignores feature.
 [tool.garuff.per-file-ignores]
-"tests/**" = ["GAC008", "GAC011"]
+# GAC008 (at most one positional parameter) — test functions take pytest
+# fixtures as positional params and helpers take several by nature, so silence
+# it across the suite.
+"tests/**" = ["GAC008"]
+# GAC011 (possessive `my`) stays active across tests on purpose — tests are a
+# place an agent might be tempted to reach for a `my_` name. Only the two files
+# whose fixtures are deliberately *about* `my` opt out: the possessive rule's
+# own tests, and the CLI sort-order test (which needs a text-scope violation,
+# and GAC011 is the only text rule).
+"tests/rules/code/test_possessive_prefix.py" = ["GAC011"]
+"tests/test_cli.py" = ["GAC011"]
 
 [tool.ruff]
 src = ["src"]
