@@ -11,3 +11,6 @@ NAME = "garuff"
 
 PROGRAM_NAME = NAME
 """The CLI program name (argparse `prog`); equals NAME by derivation."""
+
+CONFIG_TABLE = NAME
+"""The `[tool.<name>]` table config is read from; equals NAME by derivation."""

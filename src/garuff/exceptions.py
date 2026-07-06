@@ -15,3 +15,7 @@ class DuplicateRuleCodeError(GaruffError):
 
 class UnknownRuleCodeError(GaruffError):
     """A rule code was requested that no registered rule provides."""
+
+
+class ConfigError(GaruffError):
+    """The `[tool.garuff]` configuration is invalid; linting must not proceed."""
