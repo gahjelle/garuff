@@ -12,8 +12,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from garuff import branding
-from garuff.exceptions import ProjectNotFoundError
+from garuff.exceptions import ConfigError, ProjectNotFoundError
 from garuff.registry import Registry
+
+# The only keys `[tool.garuff]` may hold; anything else is a config error.
+TOP_LEVEL_KEYS = frozenset({"ignore", "per-file-ignores", "rules"})
 
 
 @dataclass(kw_only=True)
@@ -46,5 +49,22 @@ def load(*, root: Path, registry: Registry) -> Config:
     """
     pyproject = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
     table = pyproject.get("tool", {}).get(branding.CONFIG_TABLE, {})
-    del table  # parsing of the table lands in later increments
-    return Config(registry=registry, per_file_ignores=[])
+    for key in table:
+        if key not in TOP_LEVEL_KEYS:
+            message = f"unknown key in [tool.{branding.CONFIG_TABLE}]: {key}"
+            raise ConfigError(message)
+
+    ignore = table.get("ignore", [])
+    for code in ignore:
+        require_known_code(code, registry=registry)
+    resolved = Registry(
+        rules=[rule for rule in registry.rules if rule.code not in ignore]
+    )
+    return Config(registry=resolved, per_file_ignores=[])
+
+
+def require_known_code(code: str, *, registry: Registry) -> None:
+    """Raise `ConfigError` unless the code names a rule in the full registry."""
+    if code not in registry.by_code:
+        message = f"unknown rule code in configuration: {code}"
+        raise ConfigError(message)
