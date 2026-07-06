@@ -5,20 +5,18 @@ Tests that span both GAA rules or exercise the shared `adr.py` seam
 own unique behaviour lives in `test_adr_duplicate.py` / `test_adr_consecutive.py`.
 """
 
-from pathlib import Path
 from typing import TYPE_CHECKING
-
-from garuff import main
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from pathlib import Path
 
-    import pytest
+    from tests.lintrun import LintRun
 
 
 def test_adr_directory_out_of_scope_is_silent_no_op(
     project: Callable[[dict[str, str]], Path],
-    capsys: pytest.CaptureFixture[str],
+    lint: Callable[[list[str]], LintRun],
 ) -> None:
     """A broken docs/adr/ that isn't named in scope produces no GAA violations."""
     project(
@@ -29,15 +27,15 @@ def test_adr_directory_out_of_scope_is_silent_no_op(
         }
     )
 
-    code = main(["src"])
+    run = lint(["src"])
 
-    captured = capsys.readouterr()
-    assert code == 0
-    assert "GAA" not in captured.out
+    assert run.exit_code == 0
+    assert not any(code.startswith("GAA") for code in run.codes)
 
 
 def test_clean_adr_directory_yields_no_violations(
     project: Callable[[dict[str, str]], Path],
+    lint: Callable[[list[str]], LintRun],
 ) -> None:
     """A gapless, duplicate-free docs/adr/ named in scope passes cleanly."""
     project(
@@ -47,14 +45,14 @@ def test_clean_adr_directory_yields_no_violations(
         }
     )
 
-    code = main(["docs/adr"])
+    run = lint(["docs/adr"])
 
-    assert code == 0
+    assert run.exit_code == 0
 
 
 def test_non_adr_files_in_the_directory_are_ignored(
     project: Callable[[dict[str, str]], Path],
-    capsys: pytest.CaptureFixture[str],
+    lint: Callable[[list[str]], LintRun],
 ) -> None:
     """README.md, a template, and a non-4-digit-prefixed file are not ADRs."""
     project(
@@ -67,16 +65,15 @@ def test_non_adr_files_in_the_directory_are_ignored(
         }
     )
 
-    code = main(["docs/adr"])
+    run = lint(["docs/adr"])
 
-    captured = capsys.readouterr()
-    assert code == 0, captured.out
-    assert "GAA" not in captured.out
+    assert run.exit_code == 0, run.stdout
+    assert not any(code.startswith("GAA") for code in run.codes)
 
 
 def test_duplicate_without_gap_does_not_also_flag_gaa002(
     project: Callable[[dict[str, str]], Path],
-    capsys: pytest.CaptureFixture[str],
+    lint: Callable[[list[str]], LintRun],
 ) -> None:
     """A duplicated number with an otherwise gapless set of numbers is GAA001 only."""
     project(
@@ -87,9 +84,8 @@ def test_duplicate_without_gap_does_not_also_flag_gaa002(
         }
     )
 
-    code = main(["docs/adr"])
+    run = lint(["docs/adr"])
 
-    out = capsys.readouterr().out
-    assert code == 1
-    assert "GAA001" in out
-    assert "GAA002" not in out
+    assert run.exit_code == 1
+    assert "GAA001" in run.codes
+    assert "GAA002" not in run.codes

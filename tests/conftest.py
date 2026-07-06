@@ -11,6 +11,9 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from garuff import main
+from tests.lintrun import LintRun
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -43,3 +46,20 @@ def project(
         return tmp_path
 
     return build
+
+
+@pytest.fixture
+def lint(capsys: pytest.CaptureFixture[str]) -> Callable[[list[str]], LintRun]:
+    """Run garuff over `paths` in the current project and parse the outcome.
+
+    Pairs with the `project` fixture: build a project, then lint it. Returns a
+    `LintRun` carrying the exit code, raw stdout/stderr, and parsed violations.
+    """
+
+    def run(paths: list[str]) -> LintRun:
+        """Invoke main() over `paths` and capture the run as a LintRun."""
+        exit_code = main(paths)
+        captured = capsys.readouterr()
+        return LintRun(exit_code=exit_code, stdout=captured.out, stderr=captured.err)
+
+    return run
