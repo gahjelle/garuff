@@ -1,0 +1,1 @@
+"""GAC code-rule tests."""
