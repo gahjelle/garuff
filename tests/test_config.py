@@ -1,170 +1,334 @@
-"""config.load — the single validation authority for `[tool.garuff]`.
+"""Strict config validation and rule resolution, observed through the CLI.
 
-These tests drive `config.load` directly (the seam that reads and strictly
-validates the config table), laying down a throwaway `pyproject.toml` under
-`tmp_path` and pointing `load` at it. The registry passed in is the real
-`REGISTRY`, so tests reference live rule codes.
+garuff reads and validates the tool's config table before it lints. Every
+outcome here is asserted the way a user sees it — the exit code and the messages
+or violations `main()` emits — never by poking at `config.load` internals: a bad
+config aborts with exit 2 and names the offending key or code, while a valid
+`ignore`, option override, or `per-file-ignores` glob changes which violations
+appear. Fixtures are throwaway projects under `tmp_path` (see conftest).
 """
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
-import pytest
+from garuff import branding
 
-from garuff.config import Config, load
-from garuff.exceptions import ConfigError
-from garuff.rules import REGISTRY
-from garuff.rules.code.positional_args import PositionalArgs
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
+
+    from tests.lintrun import LintRun
+
+FUTURE_IMPORT = "from __future__ import annotations\n"  # trips GAC001
+TWO_POSITIONAL = "def f(a, b):\n    return a\n"  # trips GAC008
 
 
-def write_pyproject(root: Path, garuff_table: str) -> None:
-    """Write a `pyproject.toml` under root with the given `[tool.garuff]` body."""
-    (root / "pyproject.toml").write_text(
-        f'[project]\nname = "sample"\n{garuff_table}', encoding="utf-8"
+def pyproject(body: str) -> str:
+    """Return `pyproject.toml` text carrying the given config-table body."""
+    return f'[project]\nname = "sample"\n{body}'
+
+
+def test_rules_are_active_without_a_config_table(
+    project: Callable[[dict[str, str]], Path],
+    lint: Callable[[list[str]], LintRun],
+) -> None:
+    """With no config table, every rule stays on — GAC001 still fires."""
+    project({"src/mod.py": FUTURE_IMPORT})
+
+    run = lint(["src"])
+
+    assert run.exit_code == 1
+    assert run.at("src/mod.py", 1, 1) == ["GAC001"]
+
+
+def test_ignore_drops_the_named_rule(
+    project: Callable[[dict[str, str]], Path],
+    lint: Callable[[list[str]], LintRun],
+) -> None:
+    """A code in `ignore` no longer fires — the tripping file comes back clean."""
+    project(
+        {
+            "pyproject.toml": pyproject(
+                f'[{branding.CONFIG_TABLE}]\nignore = ["GAC001"]\n'
+            ),
+            "src/mod.py": FUTURE_IMPORT,
+        }
     )
 
+    run = lint(["src"])
 
-def test_no_config_table_leaves_registry_unchanged(tmp_path: Path) -> None:
-    """A project without a `[tool.garuff]` table loads every rule (registry intact)."""
-    write_pyproject(tmp_path, "")
-
-    config = load(root=tmp_path, registry=REGISTRY)
-
-    assert isinstance(config, Config)
-    assert config.registry == REGISTRY
+    assert run.exit_code == 0
+    assert "GAC001" not in run.codes
 
 
-def test_ignore_removes_the_named_rule(tmp_path: Path) -> None:
-    """A code in `ignore` is dropped from the resolved registry, others stay."""
-    write_pyproject(tmp_path, '[tool.garuff]\nignore = ["GAC001"]\n')
-
-    config = load(root=tmp_path, registry=REGISTRY)
-
-    assert "GAC001" not in config.registry.by_code
-    assert "GAC011" in config.registry.by_code
-
-
-def test_ignore_removes_a_project_scope_rule(tmp_path: Path) -> None:
+def test_ignore_drops_a_project_scope_rule(
+    project: Callable[[dict[str, str]], Path],
+    lint: Callable[[list[str]], LintRun],
+) -> None:
     """`ignore` is the only lever for a project-scope rule (GAA), and it works."""
-    write_pyproject(tmp_path, '[tool.garuff]\nignore = ["GAA001"]\n')
+    project(
+        {
+            "pyproject.toml": pyproject(
+                f'[{branding.CONFIG_TABLE}]\nignore = ["GAA001"]\n'
+            ),
+            "docs/adr/0001-first.md": "First ADR.\n",
+            "docs/adr/0001-again.md": "Another ADR.\n",
+        }
+    )
 
-    config = load(root=tmp_path, registry=REGISTRY)
+    run = lint(["docs"])
 
-    assert "GAA001" not in config.registry.by_code
+    assert run.exit_code == 0
+    assert "GAA001" not in run.codes
 
 
-def test_unknown_ignore_code_is_a_config_error(tmp_path: Path) -> None:
+def test_unknown_ignore_code_aborts_with_exit_two(
+    project: Callable[[dict[str, str]], Path],
+    lint: Callable[[list[str]], LintRun],
+) -> None:
     """An `ignore` code no rule provides is a hard config error, not a warning."""
-    write_pyproject(tmp_path, '[tool.garuff]\nignore = ["GAC999"]\n')
+    project(
+        {
+            "pyproject.toml": pyproject(
+                f'[{branding.CONFIG_TABLE}]\nignore = ["GAC999"]\n'
+            ),
+            "src/mod.py": "x = 1\n",
+        }
+    )
 
-    with pytest.raises(ConfigError, match="GAC999"):
-        load(root=tmp_path, registry=REGISTRY)
+    run = lint(["src"])
+
+    assert run.exit_code == 2
+    assert "GAC999" in run.stderr
 
 
-def test_dead_glob_matching_no_files_is_a_config_error(tmp_path: Path) -> None:
+def test_dead_glob_aborts_with_exit_two(
+    project: Callable[[dict[str, str]], Path],
+    lint: Callable[[list[str]], LintRun],
+) -> None:
     """A `per-file-ignores` glob that matches no project file is a config error."""
-    (tmp_path / "src").mkdir()
-    (tmp_path / "src" / "mod.py").write_text("x = 1\n", encoding="utf-8")
-    write_pyproject(
-        tmp_path, '[tool.garuff.per-file-ignores]\n"nowhere/**" = ["GAC001"]\n'
+    project(
+        {
+            "pyproject.toml": pyproject(
+                f"[{branding.CONFIG_TABLE}.per-file-ignores]\n"
+                '"nowhere/**" = ["GAC001"]\n'
+            ),
+            "src/mod.py": "x = 1\n",
+        }
     )
 
-    with pytest.raises(ConfigError, match="nowhere/"):
-        load(root=tmp_path, registry=REGISTRY)
+    run = lint(["src"])
+
+    assert run.exit_code == 2
+    assert "nowhere/" in run.stderr
 
 
-def test_live_glob_is_judged_against_the_whole_project(tmp_path: Path) -> None:
-    """A glob matching files anywhere in the project passes (ADR-0008).
+def test_glob_is_live_against_the_whole_project_not_the_run(
+    project: Callable[[dict[str, str]], Path],
+    lint: Callable[[list[str]], LintRun],
+) -> None:
+    """A `tests/**` glob stays live even when only `src/` is linted (ADR-0008).
 
-    The universe is the whole project, not any narrower lint path, so a
-    `tests/**` glob is live as long as the project has files under `tests/`.
+    Judged against the run's files a `tests/**` glob would match nothing when
+    linting `src/` and abort with exit 2; judged against the whole project it is
+    live, so the run proceeds and flags `src/` normally.
     """
-    (tmp_path / "src").mkdir()
-    (tmp_path / "tests").mkdir()
-    (tmp_path / "src" / "mod.py").write_text("x = 1\n", encoding="utf-8")
-    (tmp_path / "tests" / "test_mod.py").write_text("x = 1\n", encoding="utf-8")
-    write_pyproject(
-        tmp_path, '[tool.garuff.per-file-ignores]\n"tests/**" = ["GAC001"]\n'
+    project(
+        {
+            "pyproject.toml": pyproject(
+                f'[{branding.CONFIG_TABLE}.per-file-ignores]\n"tests/**" = ["GAC001"]\n'
+            ),
+            "src/mod.py": FUTURE_IMPORT,
+            "tests/test_mod.py": FUTURE_IMPORT,
+        }
     )
 
-    config = load(root=tmp_path, registry=REGISTRY)
+    run = lint(["src"])
 
-    assert config.per_file_ignores == [("tests/**", frozenset({"GAC001"}))]
+    assert run.exit_code == 1
+    assert run.at("src/mod.py", 1, 1) == ["GAC001"]
 
 
-def test_unknown_top_level_key_is_a_config_error(tmp_path: Path) -> None:
+def test_unknown_top_level_key_aborts_with_exit_two(
+    project: Callable[[dict[str, str]], Path],
+    lint: Callable[[list[str]], LintRun],
+) -> None:
     """A key outside {ignore, per-file-ignores, rules} is a config error."""
-    write_pyproject(tmp_path, "[tool.garuff]\nfoo = 1\n")
+    project(
+        {
+            "pyproject.toml": pyproject(f"[{branding.CONFIG_TABLE}]\nfoo = 1\n"),
+            "src/mod.py": "x = 1\n",
+        }
+    )
 
-    with pytest.raises(ConfigError, match="foo"):
-        load(root=tmp_path, registry=REGISTRY)
+    run = lint(["src"])
+
+    assert run.exit_code == 2
+    assert "foo" in run.stderr
 
 
-def test_options_for_an_optionless_rule_is_a_config_error(tmp_path: Path) -> None:
+def test_options_for_an_optionless_rule_aborts_with_exit_two(
+    project: Callable[[dict[str, str]], Path],
+    lint: Callable[[list[str]], LintRun],
+) -> None:
     """A `rules.<CODE>` table for a rule with no options is a config error."""
-    write_pyproject(tmp_path, "[tool.garuff.rules.GAC001]\nfoo = 1\n")
+    project(
+        {
+            "pyproject.toml": pyproject(
+                f"[{branding.CONFIG_TABLE}.rules.GAC001]\nfoo = 1\n"
+            ),
+            "src/mod.py": "x = 1\n",
+        }
+    )
 
-    with pytest.raises(ConfigError, match="GAC001"):
-        load(root=tmp_path, registry=REGISTRY)
+    run = lint(["src"])
+
+    assert run.exit_code == 2
+    assert "GAC001" in run.stderr
 
 
-def test_unknown_option_key_is_a_config_error(tmp_path: Path) -> None:
+def test_unknown_option_key_aborts_with_exit_two(
+    project: Callable[[dict[str, str]], Path],
+    lint: Callable[[list[str]], LintRun],
+) -> None:
     """An option key the rule's schema does not declare is a config error."""
-    write_pyproject(tmp_path, "[tool.garuff.rules.GAC008]\nnonsense = 1\n")
+    project(
+        {
+            "pyproject.toml": pyproject(
+                f"[{branding.CONFIG_TABLE}.rules.GAC008]\nnonsense = 1\n"
+            ),
+            "src/mod.py": "x = 1\n",
+        }
+    )
 
-    with pytest.raises(ConfigError, match="nonsense"):
-        load(root=tmp_path, registry=REGISTRY)
+    run = lint(["src"])
+
+    assert run.exit_code == 2
+    assert "nonsense" in run.stderr
 
 
-def test_wrong_option_type_is_a_config_error(tmp_path: Path) -> None:
+def test_wrong_option_type_aborts_with_exit_two(
+    project: Callable[[dict[str, str]], Path],
+    lint: Callable[[list[str]], LintRun],
+) -> None:
     """An option value of the wrong type is a config error, not a coercion."""
-    write_pyproject(
-        tmp_path, '[tool.garuff.rules.GAC008]\nmax-positional-args = "two"\n'
+    project(
+        {
+            "pyproject.toml": pyproject(
+                f'[{branding.CONFIG_TABLE}.rules.GAC008]\nmax-positional-args = "two"\n'
+            ),
+            "src/mod.py": "x = 1\n",
+        }
     )
 
-    with pytest.raises(ConfigError, match="max-positional-args"):
-        load(root=tmp_path, registry=REGISTRY)
+    run = lint(["src"])
+
+    assert run.exit_code == 2
+    assert "max-positional-args" in run.stderr
 
 
-def test_unknown_rule_code_in_options_is_a_config_error(tmp_path: Path) -> None:
+def test_unknown_rule_code_in_options_aborts_with_exit_two(
+    project: Callable[[dict[str, str]], Path],
+    lint: Callable[[list[str]], LintRun],
+) -> None:
     """A `rules.<CODE>` table for an unknown code is a config error."""
-    write_pyproject(tmp_path, "[tool.garuff.rules.GAC999]\nmax-positional-args = 2\n")
-
-    with pytest.raises(ConfigError, match="GAC999"):
-        load(root=tmp_path, registry=REGISTRY)
-
-
-def test_option_override_is_baked_into_the_resolved_rule(tmp_path: Path) -> None:
-    """A valid override is baked onto the resolved rule via dataclasses.replace."""
-    write_pyproject(tmp_path, "[tool.garuff.rules.GAC008]\nmax-positional-args = 3\n")
-
-    config = load(root=tmp_path, registry=REGISTRY)
-
-    rule = config.registry.by_code["GAC008"]
-    assert isinstance(rule, PositionalArgs)
-    assert rule.options.max_positional_args == 3
-
-
-def test_per_file_ignores_are_parsed(tmp_path: Path) -> None:
-    """Each `per-file-ignores` entry becomes a (glob, frozenset[codes]) pair."""
-    (tmp_path / "tests").mkdir()
-    (tmp_path / "tests" / "test_a.py").write_text("x = 1\n", encoding="utf-8")
-    write_pyproject(
-        tmp_path,
-        '[tool.garuff.per-file-ignores]\n"tests/**" = ["GAC001", "GAC011"]\n',
+    project(
+        {
+            "pyproject.toml": pyproject(
+                f"[{branding.CONFIG_TABLE}.rules.GAC999]\nmax-positional-args = 2\n"
+            ),
+            "src/mod.py": "x = 1\n",
+        }
     )
 
-    config = load(root=tmp_path, registry=REGISTRY)
+    run = lint(["src"])
 
-    assert config.per_file_ignores == [("tests/**", frozenset({"GAC001", "GAC011"}))]
+    assert run.exit_code == 2
+    assert "GAC999" in run.stderr
 
 
-def test_unknown_per_file_ignore_code_is_a_config_error(tmp_path: Path) -> None:
+def test_option_override_changes_what_is_flagged(
+    project: Callable[[dict[str, str]], Path],
+    lint: Callable[[list[str]], LintRun],
+) -> None:
+    """`max-positional-args = 3` permits three positional params but not four."""
+    project(
+        {
+            "pyproject.toml": pyproject(
+                f"[{branding.CONFIG_TABLE}.rules.GAC008]\nmax-positional-args = 3\n"
+            ),
+            "src/three.py": "def f(a, b, c):\n    return a\n",
+            "src/four.py": "def g(a, b, c, d):\n    return a\n",
+        }
+    )
+
+    run = lint(["src"])
+
+    assert run.at("src/three.py", 1, 1) == []
+    assert run.at("src/four.py", 1, 1) == ["GAC008"]
+
+
+def test_per_file_ignores_silence_the_listed_codes(
+    project: Callable[[dict[str, str]], Path],
+    lint: Callable[[list[str]], LintRun],
+) -> None:
+    """A `tests/**` entry listing two codes silences both under tests/."""
+    project(
+        {
+            "pyproject.toml": pyproject(
+                f"[{branding.CONFIG_TABLE}.per-file-ignores]\n"
+                '"tests/**" = ["GAC001", "GAC008"]\n'
+            ),
+            "tests/test_a.py": FUTURE_IMPORT + "\n" + TWO_POSITIONAL,
+        }
+    )
+
+    run = lint(["tests"])
+
+    assert run.exit_code == 0
+    assert run.codes == []
+
+
+def test_unknown_per_file_ignore_code_aborts_with_exit_two(
+    project: Callable[[dict[str, str]], Path],
+    lint: Callable[[list[str]], LintRun],
+) -> None:
     """An unknown code in a `per-file-ignores` value is a config error."""
-    (tmp_path / "tests").mkdir()
-    (tmp_path / "tests" / "test_a.py").write_text("x = 1\n", encoding="utf-8")
-    write_pyproject(
-        tmp_path, '[tool.garuff.per-file-ignores]\n"tests/**" = ["GAC999"]\n'
+    project(
+        {
+            "pyproject.toml": pyproject(
+                f'[{branding.CONFIG_TABLE}.per-file-ignores]\n"tests/**" = ["GAC999"]\n'
+            ),
+            "tests/test_a.py": "x = 1\n",
+        }
     )
 
-    with pytest.raises(ConfigError, match="GAC999"):
-        load(root=tmp_path, registry=REGISTRY)
+    run = lint(["tests"])
+
+    assert run.exit_code == 2
+    assert "GAC999" in run.stderr
+
+
+def test_project_scope_code_in_per_file_ignores_aborts_with_exit_two(
+    project: Callable[[dict[str, str]], Path],
+    lint: Callable[[list[str]], LintRun],
+) -> None:
+    """A project-scope rule can't be silenced per-file — that's a config error.
+
+    Per-file-ignores act on source/text rules; a project-scope rule (GAA) sees
+    the whole tree at once, so listing it here would silently no-op. Strict
+    config rejects it and points the user at `ignore`.
+    """
+    project(
+        {
+            "pyproject.toml": pyproject(
+                f'[{branding.CONFIG_TABLE}.per-file-ignores]\n"tests/**" = ["GAA001"]\n'
+            ),
+            "tests/test_a.py": "x = 1\n",
+        }
+    )
+
+    run = lint(["tests"])
+
+    assert run.exit_code == 2
+    assert "GAA001" in run.stderr
+    assert "ignore" in run.stderr

@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from garuff import branding
+
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
@@ -93,7 +95,7 @@ def test_max_positional_args_option_raises_the_ceiling(
     project(
         {
             "pyproject.toml": '[project]\nname = "sample"\n'
-            "[tool.garuff.rules.GAC008]\nmax-positional-args = 2\n",
+            f"[{branding.CONFIG_TABLE}.rules.GAC008]\nmax-positional-args = 2\n",
             "src/two.py": "def f(a, b):\n    pass\n",
             "src/three.py": "def g(a, b, c):\n    pass\n",
         }

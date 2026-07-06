@@ -18,4 +18,4 @@ class UnknownRuleCodeError(GaruffError):
 
 
 class ConfigError(GaruffError):
-    """The `[tool.garuff]` configuration is invalid; linting must not proceed."""
+    """The tool's configuration table is invalid; linting must not proceed."""

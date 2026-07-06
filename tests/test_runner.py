@@ -1,44 +1,39 @@
-"""runner.run consumes a resolved Config — per-file-ignores select rules per file.
+"""Per-file-ignores select rules per file — observed end-to-end through the CLI.
 
-The runner does no ignore parsing of its own (that is `config.load`'s job); it
-receives a resolved `Config` and, per file, drops the source/text rules whose
-codes a matching `per-file-ignores` glob silences. These tests build a real
-config with `config.load`, then drive `run` at that seam.
+A `per-file-ignores` glob silences its codes only for the files it matches; a
+file outside the glob still trips them. These cases drive `main()` over a
+throwaway project and assert on the violations a user sees, file by file.
 """
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 
-from garuff.config import load
-from garuff.rules import REGISTRY
-from garuff.runner import run
+from garuff import branding
 
 if TYPE_CHECKING:
-    from garuff.schemas import RunResult
+    from collections.abc import Callable
+    from pathlib import Path
 
-FUTURE_IMPORT = "from __future__ import annotations\n"
+    from tests.lintrun import LintRun
 
-
-def codes_at(result: RunResult, relpath: str, root: Path) -> list[str]:
-    """Return the violation codes reported for the file at `relpath` under root."""
-    target = root / relpath
-    return [v.rule.code for v in result.violations if v.location.path == target]
+FUTURE_IMPORT = "from __future__ import annotations\n"  # trips GAC001
 
 
-def test_per_file_ignore_silences_matching_files_only(tmp_path: Path) -> None:
+def test_per_file_ignore_silences_matching_files_only(
+    project: Callable[[dict[str, str]], Path],
+    lint: Callable[[list[str]], LintRun],
+) -> None:
     """A `tests/**` glob silences GAC001 under tests/ but not under src/."""
-    (tmp_path / "src").mkdir()
-    (tmp_path / "tests").mkdir()
-    (tmp_path / "src" / "mod.py").write_text(FUTURE_IMPORT, encoding="utf-8")
-    (tmp_path / "tests" / "test_mod.py").write_text(FUTURE_IMPORT, encoding="utf-8")
-    (tmp_path / "pyproject.toml").write_text(
-        '[project]\nname = "sample"\n'
-        '[tool.garuff.per-file-ignores]\n"tests/**" = ["GAC001"]\n',
-        encoding="utf-8",
+    project(
+        {
+            "pyproject.toml": '[project]\nname = "sample"\n'
+            f"[{branding.CONFIG_TABLE}.per-file-ignores]\n"
+            '"tests/**" = ["GAC001"]\n',
+            "src/mod.py": FUTURE_IMPORT,
+            "tests/test_mod.py": FUTURE_IMPORT,
+        }
     )
-    config = load(root=tmp_path, registry=REGISTRY)
 
-    result = run(paths=[tmp_path / "src", tmp_path / "tests"], config=config)
+    run = lint(["src", "tests"])
 
-    assert codes_at(result, "src/mod.py", tmp_path) == ["GAC001"]
-    assert codes_at(result, "tests/test_mod.py", tmp_path) == []
+    assert run.at("src/mod.py", 1, 1) == ["GAC001"]
+    assert run.at("tests/test_mod.py", 1, 1) == []

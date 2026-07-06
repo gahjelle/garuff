@@ -2,47 +2,24 @@
 
 import ast
 from collections import Counter
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import TYPE_CHECKING
 
+from garuff.files import gather_files
 from garuff.rule import ProjectRule, SourceRule, TextRule
 from garuff.schemas import Location, ParseFailure, RunResult, Violation
 
 if TYPE_CHECKING:
     from garuff.config import Config
 
-# The file extensions garuff lints. Source rules run on `.py` only; text rules
-# run on the raw text of every gathered file.
-LINTED_SUFFIXES = frozenset({".py", ".md"})
-
-
-def gather_files(*, paths: list[Path]) -> list[Path]:
-    """Collect the linted files under the given paths, de-duplicated and sorted."""
-    files: set[Path] = set()
-    for path in paths:
-        if path.is_dir():
-            files.update(
-                found
-                for found in path.rglob("*")
-                if found.suffix in LINTED_SUFFIXES and found.is_file()
-            )
-        elif path.suffix in LINTED_SUFFIXES:
-            files.add(path)
-    return sorted(files)
-
 
 def suppressed_codes(file: Path, *, config: Config) -> frozenset[str]:
-    """Union the codes every `per-file-ignores` glob matching this file silences.
-
-    The file is matched by its root-relative POSIX path, so globs are anchored to
-    the project root and `**` crosses directory segments on every platform.
-    """
-    relative = PurePosixPath(file.relative_to(config.root).as_posix())
+    """Union the codes every `per-file-ignores` entry matching this file silences."""
     return frozenset(
         code
-        for glob, codes in config.per_file_ignores
-        if relative.full_match(glob)
-        for code in codes
+        for entry in config.per_file_ignores
+        if entry.matches(file, root=config.root)
+        for code in entry.codes
     )
 
 

@@ -1,26 +1,28 @@
-"""Project discovery and strict `[tool.garuff]` parsing.
+"""Project discovery and strict parsing of the tool's config table.
 
 `discover_root` locates the project by walking up to a `pyproject.toml`.
-`load` is the single validation authority: it reads `[tool.<CONFIG_TABLE>]`,
-strictly validates it (the only site that raises `ConfigError`), and returns a
-resolved `Config` the runner can consume without touching raw config — globally
-ignored rules already removed, options already baked. See ADR-0007, ADR-0008.
+`load` is the single validation authority: it reads the `branding.CONFIG_TABLE`
+table, strictly validates it (the only site that raises `ConfigError`), and
+returns a resolved `Config` the runner can consume without touching raw config —
+globally ignored rules already removed, options already baked. See ADR-0007,
+ADR-0008.
 """
 
 import tomllib
 from dataclasses import dataclass, fields, replace
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from garuff import branding
 from garuff.exceptions import ConfigError, ProjectNotFoundError
+from garuff.files import PerFileIgnore, gather_files, relative_posix
 from garuff.registry import Registry
-from garuff.runner import gather_files
+from garuff.rule import ProjectRule
 
 if TYPE_CHECKING:
     from garuff.rule import Rule
 
-# The only keys `[tool.garuff]` may hold; anything else is a config error.
+# The only keys the config table may hold; anything else is a config error.
 TOP_LEVEL_KEYS = frozenset({"ignore", "per-file-ignores", "rules"})
 
 
@@ -29,14 +31,14 @@ class Config:
     """A resolved, validated configuration: the levers the runner acts on.
 
     `registry` is the resolved registry (globally-ignored rules removed, options
-    baked). `per_file_ignores` pairs each suppression glob with the rule codes it
-    silences, matched per file when the runner selects which rules to run. `root`
-    is the project root those globs are anchored to (POSIX, root-relative).
+    baked). `per_file_ignores` is the suppression entries, each matched per file
+    when the runner selects which rules to run. `root` is the project root those
+    globs are anchored to (POSIX, root-relative).
     """
 
     root: Path
     registry: Registry
-    per_file_ignores: list[tuple[str, frozenset[str]]]
+    per_file_ignores: list[PerFileIgnore]
 
 
 def discover_root(*, start: Path) -> Path:
@@ -49,16 +51,18 @@ def discover_root(*, start: Path) -> Path:
 
 
 def load(*, root: Path, registry: Registry) -> Config:
-    """Read and strictly validate `[tool.garuff]`; return a resolved Config.
+    """Read and strictly validate the tool's config table; return a resolved Config.
 
-    A missing `[tool]` or `[tool.<name>]` table means no configuration — every
-    rule stays on. This is the only function that raises `ConfigError`.
+    A missing config table means no configuration — every rule stays on. This is
+    the only function that raises `ConfigError`.
     """
     pyproject = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
-    table = pyproject.get("tool", {}).get(branding.CONFIG_TABLE, {})
+    table: Any = pyproject
+    for key in branding.CONFIG_TABLE_PATH:
+        table = table.get(key, {})
     for key in table:
         if key not in TOP_LEVEL_KEYS:
-            message = f"unknown key in [tool.{branding.CONFIG_TABLE}]: {key}"
+            message = f"unknown key in [{branding.CONFIG_TABLE}]: {key}"
             raise ConfigError(message)
 
     ignore = table.get("ignore", [])
@@ -68,20 +72,22 @@ def load(*, root: Path, registry: Registry) -> Config:
     baked_options = resolve_options(table.get("rules", {}), registry=registry)
     resolved = Registry(
         rules=[
-            replace(rule, options=baked_options[rule.code])
-            if rule.code in baked_options
-            else rule
+            (
+                replace(rule, options=baked_options[rule.code])
+                if rule.code in baked_options
+                else rule
+            )
             for rule in registry.rules
             if rule.code not in ignore
         ]
     )
 
-    per_file_ignores: list[tuple[str, frozenset[str]]] = []
+    per_file_ignores: list[PerFileIgnore] = []
     for glob, codes in table.get("per-file-ignores", {}).items():
         for code in codes:
-            require_known_code(code, registry=registry)
+            require_suppressible_code(code, registry=registry)
         require_live_glob(glob, root=root)
-        per_file_ignores.append((glob, frozenset(codes)))
+        per_file_ignores.append(PerFileIgnore(glob=glob, codes=frozenset(codes)))
 
     return Config(root=root, registry=resolved, per_file_ignores=per_file_ignores)
 
@@ -90,6 +96,21 @@ def require_known_code(code: str, *, registry: Registry) -> None:
     """Raise `ConfigError` unless the code names a rule in the full registry."""
     if code not in registry.by_code:
         message = f"unknown rule code in configuration: {code}"
+        raise ConfigError(message)
+
+
+def require_suppressible_code(code: str, *, registry: Registry) -> None:
+    """Raise `ConfigError` unless the code names a per-file-suppressible rule.
+
+    A project-scope rule sees the whole tree at once, so a per-file glob has
+    nothing to bite on — the runner never applies `per-file-ignores` to it. Left
+    to validate as a known code it would load yet silently do nothing; strict
+    config treats that no-op as the misconfiguration it is. `ignore` is the only
+    lever for project-scope rules.
+    """
+    require_known_code(code, registry=registry)
+    if isinstance(registry.by_code[code], ProjectRule):
+        message = f"project-scope rule {code} cannot be silenced per-file; use ignore"
         raise ConfigError(message)
 
 
@@ -147,8 +168,7 @@ def require_live_glob(glob: str, *, root: Path) -> None:
     they aren't linting (ADR-0008).
     """
     for file in gather_files(paths=[root]):
-        relative = PurePosixPath(file.relative_to(root).as_posix())
-        if relative.full_match(glob):
+        if relative_posix(file, root=root).full_match(glob):
             return
     message = f"per-file-ignores glob matches no files: {glob}"
     raise ConfigError(message)

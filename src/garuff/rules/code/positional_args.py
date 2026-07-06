@@ -23,7 +23,7 @@ from garuff.schemas import Location, Violation
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-Function = ast.FunctionDef | ast.AsyncFunctionDef
+type Function = ast.FunctionDef | ast.AsyncFunctionDef
 
 
 @dataclass(kw_only=True)
