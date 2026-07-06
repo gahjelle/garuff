@@ -25,11 +25,12 @@ dev = [
 
 [tool.garuff]
 # garuff dogfoods its own rules; this table is the first real consumer of the
-# per-file-ignores feature. GAC008 (at most one positional parameter) is a
-# production-code guardrail — test helpers and fixtures take several positional
-# params by nature, so silence it under tests/.
+# per-file-ignores feature. Under tests/, fixtures and helpers break these rules
+# by design — GAC008 (test helpers take several positional params) and GAC011
+# (the possessive-prefix rule's own test data is full of `my_thing`, `MyClass`,
+# …) — so silence both there rather than contort the tests.
 [tool.garuff.per-file-ignores]
-"tests/**" = ["GAC008"]
+"tests/**" = ["GAC008", "GAC011"]
 
 [tool.ruff]
 src = ["src"]
