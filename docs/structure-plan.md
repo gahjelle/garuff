@@ -105,7 +105,7 @@ src/garuff/
 Bare `# garuff: ignore`; Markdown inline suppression; unused-directive detection
 (a future rule); `--config`/`--root` flags; `select`/allowlist mode; JSON output.
 
-File exclusion (gitignore-aware selection, hidden-directory / `.venv` /
-vendored-tree skipping). Until then, `rglob("*.py")` lints everything under the
-given paths; the default `src/`/`tests/` paths make this safe in practice, but
-pointing garuff at a tree containing a virtualenv would lint it.
+File exclusion **landed** in #16 (see ADR-0009): traversal skips dot-prefixed
+directories always, and inside a git work-tree intersects with git's view so
+gitignored trees drop out. Pointing garuff at a tree containing a virtualenv no
+longer lints it.

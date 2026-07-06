@@ -7,6 +7,7 @@ from pathlib import Path
 from garuff import branding
 from garuff.config import discover_root, load
 from garuff.exceptions import ConfigError, ProjectNotFoundError
+from garuff.files import git_lintable
 from garuff.output import (
     render_parse_failures,
     render_summary,
@@ -24,7 +25,14 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         root = discover_root(start=Path.cwd())
-        config = load(root=root, registry=REGISTRY)
+        allowed = git_lintable(root)
+        if allowed is None:
+            sys.stderr.write(
+                "warning: not a git repository (or git unavailable) — "
+                "gitignore-based file exclusion is off; "
+                "only hidden directories are skipped\n"
+            )
+        config = load(root=root, registry=REGISTRY, allowed=allowed)
     except (ProjectNotFoundError, ConfigError) as error:
         sys.stderr.write(f"{error}\n")
         return 2
@@ -38,7 +46,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         paths = [root / "src", root / "tests"]
 
-    result = run(paths=paths, config=config)
+    result = run(paths=paths, config=config, allowed=allowed)
     if result.violations:
         locators = render_violations(violations=result.violations, root=root)
         sys.stdout.write(locators + "\n")

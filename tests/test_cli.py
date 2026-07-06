@@ -199,6 +199,27 @@ def test_invalid_config_exits_two(
     assert captured.out == ""
 
 
+def test_non_git_tree_warns_exactly_once_and_still_lints(
+    project: Callable[[dict[str, str]], Path],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Outside a git work-tree garuff warns once, then lints with Layer 1 only."""
+    project(
+        {
+            "src/mod.py": "from __future__ import annotations\n",
+            ".venv/lib/junk.py": "from __future__ import annotations\n",
+        }
+    )
+
+    code = main(["."])
+
+    captured = capsys.readouterr()
+    assert code == 1
+    assert captured.err.count("not a git repository") == 1
+    assert "src/mod.py:1:1: GAC001" in captured.out
+    assert ".venv" not in captured.out  # Layer 1 still prunes the virtualenv
+
+
 def test_help_usage_reflects_program_name(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],

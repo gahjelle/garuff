@@ -23,12 +23,16 @@ def suppressed_codes(file: Path, *, config: Config) -> frozenset[str]:
     )
 
 
-def run(*, paths: list[Path], config: Config) -> RunResult:
+def run(
+    *, paths: list[Path], config: Config, allowed: frozenset[Path] | None = None
+) -> RunResult:
     """Run every active source and text rule over the gathered files.
 
     Rule selection is per file: a rule whose code a matching `per-file-ignores`
     glob silences does not run on that file. Project rules see only global
     `ignore` (already applied to the resolved registry), never per-file-ignores.
+    `allowed` is the git-derived lintable set (or None outside a work-tree),
+    forwarded to `gather_files` so the run honours git's exclusions.
     """
     registry = config.registry
     source_rules = [rule for rule in registry.rules if isinstance(rule, SourceRule)]
@@ -37,7 +41,7 @@ def run(*, paths: list[Path], config: Config) -> RunResult:
     violations: list[Violation] = []
     parse_failures: list[ParseFailure] = []
     linted: Counter[str] = Counter()
-    files = gather_files(paths=paths)
+    files = gather_files(paths=paths, allowed=allowed)
     for file in files:
         skip = suppressed_codes(file, config=config)
         text = file.read_text(encoding="utf-8")

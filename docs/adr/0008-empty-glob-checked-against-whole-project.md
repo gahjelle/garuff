@@ -23,10 +23,11 @@ the project?", independent of which paths a given run happens to lint.
 ## Consequences
 
 - Partial runs never trip on globs aimed at trees they aren't linting.
-- The project-file set is imprecise until file exclusion lands (#16): a walk from
-  root sweeps `.venv`/vendored trees, so a junk glob that happens to match
-  something there is spuriously "live." Low-risk — those files are only counted,
-  never linted — and it is exactly the imprecision #16 is scoped to remove.
+- The project-file set is honest: file exclusion (#16, ADR-0009) now runs on this
+  walk too — `gather_files([root], allowed)` skips `.venv`/dot-dirs and gitignored
+  trees — so a junk glob matching only excluded files is no longer spuriously
+  "live." (Earlier this note flagged that imprecision as pending #16; it is
+  resolved.)
 - Two `gather_files` passes per run: the whole-project walk for glob validation,
   and the narrower walk over the actual lint paths. Cheap and clearly separated.
 - This reverses the reading implied by issue #4 (globs validated against the
