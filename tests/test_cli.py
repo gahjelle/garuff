@@ -178,6 +178,27 @@ def test_source_and_text_violations_reported_line_sorted(
     ]
 
 
+def test_invalid_config_exits_two(
+    project: Callable[[dict[str, str]], Path],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A broken `[tool.garuff]` config aborts before linting, exit 2 with a message."""
+    project(
+        {
+            "pyproject.toml": '[project]\nname = "sample"\n'
+            '[tool.garuff]\nignore = ["GAC999"]\n',
+            "src/mod.py": "x = 1\n",
+        }
+    )
+
+    code = main(["src"])
+
+    captured = capsys.readouterr()
+    assert code == 2
+    assert "GAC999" in captured.err
+    assert captured.out == ""
+
+
 def test_help_usage_reflects_program_name(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],

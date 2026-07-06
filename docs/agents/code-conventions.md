@@ -15,6 +15,8 @@ garuff follows the structure settled in [`docs/structure-plan.md`](../structure-
 - `rule.py` — the `SourceRule` / `TextRule` / `ProjectRule` bases (one per scope).
 - `registry.py` — explicit aggregation of every rule; lookup by code.
 - `config.py` — project discovery + strict `[tool.garuff]` parsing/validation.
+- `files.py` — the filesystem seam `config` and `runner` share: gathering
+  lintable files and matching `per-file-ignores` globs (`PerFileIgnore`).
 - `suppression.py` — parse `# garuff: ignore[...]` directives; filter violations.
 - `runner.py` — orchestration of the run pipeline.
 - `schemas.py` — the passive result/value types (`Location`, `Violation`, `ParseFailure`, `RunResult`); a low-dependency leaf module. See [ADR-0004](../adr/0004-passive-result-types-live-in-schemas.md).

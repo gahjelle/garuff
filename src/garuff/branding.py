@@ -11,3 +11,9 @@ NAME = "garuff"
 
 PROGRAM_NAME = NAME
 """The CLI program name (argparse `prog`); equals NAME by derivation."""
+
+CONFIG_TABLE = f"tool.{NAME}"
+"""The dotted config table config is read from (`tool.<name>`), derived from NAME."""
+
+CONFIG_TABLE_PATH = CONFIG_TABLE.split(".")
+"""CONFIG_TABLE split into keys, for walking into the parsed `pyproject.toml`."""

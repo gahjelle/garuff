@@ -24,14 +24,19 @@ def test_own_src_is_clean(
     assert code == 0, captured.out
 
 
-def test_own_adr_directory_passes_gaa_rules(
+def test_own_dogfood_scope_is_clean(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """The repo's own docs/adr/ has no duplicate or gapped ADR numbers."""
+    """The full `just dogfood` scope (src, tests, docs/adr) reports no violations.
+
+    Linting `tests/` exercises the repo's own `per-file-ignores`: fixture data
+    and helpers there trip GAC008/GAC011 by design, so the config silences those
+    codes under `tests/**`. A clean run proves both the rules and the ignores.
+    """
     monkeypatch.chdir(PROJECT_ROOT)
 
-    code = main(["src", "docs/adr"])
+    code = main(["src", "tests", "docs/adr"])
 
     captured = capsys.readouterr()
     assert code == 0, captured.out

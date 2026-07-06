@@ -5,8 +5,8 @@ import sys
 from pathlib import Path
 
 from garuff import branding
-from garuff.config import discover_root
-from garuff.exceptions import ProjectNotFoundError
+from garuff.config import discover_root, load
+from garuff.exceptions import ConfigError, ProjectNotFoundError
 from garuff.output import (
     render_parse_failures,
     render_summary,
@@ -24,7 +24,8 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         root = discover_root(start=Path.cwd())
-    except ProjectNotFoundError as error:
+        config = load(root=root, registry=REGISTRY)
+    except (ProjectNotFoundError, ConfigError) as error:
         sys.stderr.write(f"{error}\n")
         return 2
 
@@ -37,7 +38,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         paths = [root / "src", root / "tests"]
 
-    result = run(paths=paths, registry=REGISTRY)
+    result = run(paths=paths, config=config)
     if result.violations:
         locators = render_violations(violations=result.violations, root=root)
         sys.stdout.write(locators + "\n")
