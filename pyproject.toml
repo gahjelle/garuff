@@ -23,6 +23,14 @@ dev = [
     "ty>=0.0.56",
 ]
 
+[tool.garuff]
+# garuff dogfoods its own rules; this table is the first real consumer of the
+# per-file-ignores feature. GAC008 (at most one positional parameter) is a
+# production-code guardrail — test helpers and fixtures take several positional
+# params by nature, so silence it under tests/.
+[tool.garuff.per-file-ignores]
+"tests/**" = ["GAC008"]
+
 [tool.ruff]
 src = ["src"]
 
