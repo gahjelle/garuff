@@ -9,11 +9,12 @@ ignored rules already removed, options already baked. See ADR-0007, ADR-0008.
 
 import tomllib
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from garuff import branding
 from garuff.exceptions import ConfigError, ProjectNotFoundError
 from garuff.registry import Registry
+from garuff.runner import gather_files
 
 # The only keys `[tool.garuff]` may hold; anything else is a config error.
 TOP_LEVEL_KEYS = frozenset({"ignore", "per-file-ignores", "rules"})
@@ -67,6 +68,7 @@ def load(*, root: Path, registry: Registry) -> Config:
     for glob, codes in table.get("per-file-ignores", {}).items():
         for code in codes:
             require_known_code(code, registry=registry)
+        require_live_glob(glob, root=root)
         per_file_ignores.append((glob, frozenset(codes)))
 
     return Config(root=root, registry=resolved, per_file_ignores=per_file_ignores)
@@ -77,3 +79,18 @@ def require_known_code(code: str, *, registry: Registry) -> None:
     if code not in registry.by_code:
         message = f"unknown rule code in configuration: {code}"
         raise ConfigError(message)
+
+
+def require_live_glob(glob: str, *, root: Path) -> None:
+    """Raise `ConfigError` unless the glob matches at least one project file.
+
+    "The project" is the whole tree under root — `gather_files([root])`, not the
+    files a given run lints — so partial runs never trip on globs aimed at trees
+    they aren't linting (ADR-0008).
+    """
+    for file in gather_files(paths=[root]):
+        relative = PurePosixPath(file.relative_to(root).as_posix())
+        if relative.full_match(glob):
+            return
+    message = f"per-file-ignores glob matches no files: {glob}"
+    raise ConfigError(message)

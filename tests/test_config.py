@@ -59,6 +59,37 @@ def test_unknown_ignore_code_is_a_config_error(tmp_path: Path) -> None:
         load(root=tmp_path, registry=REGISTRY)
 
 
+def test_dead_glob_matching_no_files_is_a_config_error(tmp_path: Path) -> None:
+    """A `per-file-ignores` glob that matches no project file is a config error."""
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "mod.py").write_text("x = 1\n", encoding="utf-8")
+    write_pyproject(
+        tmp_path, '[tool.garuff.per-file-ignores]\n"nowhere/**" = ["GAC001"]\n'
+    )
+
+    with pytest.raises(ConfigError, match="nowhere/"):
+        load(root=tmp_path, registry=REGISTRY)
+
+
+def test_live_glob_is_judged_against_the_whole_project(tmp_path: Path) -> None:
+    """A glob matching files anywhere in the project passes (ADR-0008).
+
+    The universe is the whole project, not any narrower lint path, so a
+    `tests/**` glob is live as long as the project has files under `tests/`.
+    """
+    (tmp_path / "src").mkdir()
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "src" / "mod.py").write_text("x = 1\n", encoding="utf-8")
+    (tmp_path / "tests" / "test_mod.py").write_text("x = 1\n", encoding="utf-8")
+    write_pyproject(
+        tmp_path, '[tool.garuff.per-file-ignores]\n"tests/**" = ["GAC001"]\n'
+    )
+
+    config = load(root=tmp_path, registry=REGISTRY)
+
+    assert config.per_file_ignores == [("tests/**", frozenset({"GAC001"}))]
+
+
 def test_unknown_top_level_key_is_a_config_error(tmp_path: Path) -> None:
     """A key outside {ignore, per-file-ignores, rules} is a config error."""
     write_pyproject(tmp_path, "[tool.garuff]\nfoo = 1\n")
