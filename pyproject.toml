@@ -48,7 +48,7 @@ select = ["ALL"]
 ignore = ["COM812", "D203", "D213"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "PLR2004", "SLF001", "INP001"]
+"tests/**" = ["S101", "PLR2004", "SLF001", "INP001", "S603", "S607"]
 
 [tool.ruff.lint.flake8-type-checking]
 # 3.14 dataclasses still read field annotations at decoration time, so imports

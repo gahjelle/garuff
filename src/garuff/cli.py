@@ -7,6 +7,7 @@ from pathlib import Path
 from garuff import branding
 from garuff.config import discover_root, load
 from garuff.exceptions import ConfigError, ProjectNotFoundError
+from garuff.files import discover_git_scope
 from garuff.output import (
     render_parse_failures,
     render_summary,
@@ -24,7 +25,8 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         root = discover_root(start=Path.cwd())
-        config = load(root=root, registry=REGISTRY)
+        scope = discover_git_scope(root, warn=sys.stderr.write)
+        config = load(root=root, registry=REGISTRY, scope=scope)
     except (ProjectNotFoundError, ConfigError) as error:
         sys.stderr.write(f"{error}\n")
         return 2
@@ -38,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         paths = [root / "src", root / "tests"]
 
-    result = run(paths=paths, config=config)
+    result = run(paths=paths, config=config, scope=scope)
     if result.violations:
         locators = render_violations(violations=result.violations, root=root)
         sys.stdout.write(locators + "\n")

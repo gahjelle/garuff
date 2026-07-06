@@ -90,6 +90,13 @@ rule's code. Distinct from Ignore and Suppression, which switch a rule off rathe
 than tune it; a rule with no options cannot be configured.
 _Avoid_: Setting, parameter, flag
 
+**Gathered files**:
+The set of files a run actually lints under the given paths, after suffix
+filtering and two-layer exclusion: hidden (dot-prefixed) directories are always
+skipped, and — inside a git work-tree — anything git ignores is dropped. An
+explicitly named file bypasses exclusion; exclusion applies to directory
+traversal. _Avoid_: "all files under the path" (exclusion means it is a subset).
+
 **Per-file-ignore**:
 The path-pattern form of Suppression: a glob mapped to rule codes, silencing
 those codes for every linted file the glob matches. Globs are project-root
