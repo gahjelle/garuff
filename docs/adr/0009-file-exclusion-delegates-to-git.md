@@ -19,10 +19,13 @@ are deferred to #28):
   project root — git handles them all).
 
 Outside a git work-tree, or when the `git` binary is absent, Layer 2 is skipped,
-garuff warns once on stderr, and Layer 1 still applies. The query runs once per
-run in `cli.main`; the resulting `frozenset[Path] | None` is threaded through
-`config.load` and `runner.run`, so `gather_files` stays a pure function with no
-subprocess and no stderr.
+garuff warns once, and Layer 1 still applies. A single domain function,
+`discover_git_scope`, runs the query once per run and owns the no-git warning
+(emitted through an injected sink so it holds no reference to stderr). It returns
+a `GitScope` value that names the sentinel distinction — an empty allow-set is
+"lint nothing", `None` is "no git, apply no intersection" — and that scope is
+threaded through `config.load` and `runner.run`. `cli.main` only wires the
+stderr sink; `gather_files` stays a pure function with no subprocess and no IO.
 
 ## Considered options
 
@@ -40,9 +43,10 @@ subprocess and no stderr.
 ## Consequences
 
 - The git dependency is *soft*: no work-tree or no binary degrades to Layer 1 and
-  warns, never a hard failure. An empty result (git ran over an empty or
-  all-ignored tree) is honoured as "lint nothing" and is distinct from `None` (no
-  git).
+  warns, never a hard failure. The `GitScope` value carries this: an empty
+  allow-set (git ran over an empty or all-ignored tree) is honoured as "lint
+  nothing" and is distinct from the `None` sentinel (no git). A non-UTF-8 filename
+  from `git ls-files -z` round-trips via `surrogateescape` rather than crashing.
 - Untracked-but-not-ignored files are linted, so a brand-new uncommitted file is
   caught immediately; gitignored files never are.
 - Explicit file paths bypass exclusion — the two layers apply to directory

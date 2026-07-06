@@ -5,7 +5,7 @@ from collections import Counter
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from garuff.files import gather_files
+from garuff.files import GitScope, gather_files
 from garuff.rule import ProjectRule, SourceRule, TextRule
 from garuff.schemas import Location, ParseFailure, RunResult, Violation
 
@@ -23,16 +23,14 @@ def suppressed_codes(file: Path, *, config: Config) -> frozenset[str]:
     )
 
 
-def run(
-    *, paths: list[Path], config: Config, allowed: frozenset[Path] | None = None
-) -> RunResult:
+def run(*, paths: list[Path], config: Config, scope: GitScope) -> RunResult:
     """Run every active source and text rule over the gathered files.
 
     Rule selection is per file: a rule whose code a matching `per-file-ignores`
     glob silences does not run on that file. Project rules see only global
     `ignore` (already applied to the resolved registry), never per-file-ignores.
-    `allowed` is the git-derived lintable set (or None outside a work-tree),
-    forwarded to `gather_files` so the run honours git's exclusions.
+    `scope` is git's view of the work-tree, forwarded to `gather_files` so the
+    run honours git's exclusions.
     """
     registry = config.registry
     source_rules = [rule for rule in registry.rules if isinstance(rule, SourceRule)]
@@ -41,7 +39,7 @@ def run(
     violations: list[Violation] = []
     parse_failures: list[ParseFailure] = []
     linted: Counter[str] = Counter()
-    files = gather_files(paths=paths, allowed=allowed)
+    files = gather_files(paths=paths, scope=scope)
     for file in files:
         skip = suppressed_codes(file, config=config)
         text = file.read_text(encoding="utf-8")

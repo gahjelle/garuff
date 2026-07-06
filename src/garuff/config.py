@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any
 
 from garuff import branding
 from garuff.exceptions import ConfigError, ProjectNotFoundError
-from garuff.files import PerFileIgnore, gather_files, relative_posix
+from garuff.files import GitScope, PerFileIgnore, gather_files, relative_posix
 from garuff.registry import Registry
 from garuff.rule import ProjectRule
 
@@ -50,15 +50,13 @@ def discover_root(*, start: Path) -> Path:
     raise ProjectNotFoundError(message)
 
 
-def load(
-    *, root: Path, registry: Registry, allowed: frozenset[Path] | None = None
-) -> Config:
+def load(*, root: Path, registry: Registry, scope: GitScope) -> Config:
     """Read and strictly validate the tool's config table; return a resolved Config.
 
     A missing config table means no configuration — every rule stays on. This is
-    the only function that raises `ConfigError`. `allowed` is the git-derived
-    lintable set (or None outside a work-tree), threaded into the whole-project
-    glob-liveness walk so it honours the same exclusions a run does.
+    the only function that raises `ConfigError`. `scope` is git's view of the
+    work-tree, threaded into the whole-project glob-liveness walk so it honours
+    the same exclusions a run does.
     """
     pyproject = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
     table: Any = pyproject
@@ -90,7 +88,7 @@ def load(
     for glob, codes in table.get("per-file-ignores", {}).items():
         for code in codes:
             require_suppressible_code(code, registry=registry)
-        require_live_glob(glob, root=root, allowed=allowed)
+        require_live_glob(glob, root=root, scope=scope)
         per_file_ignores.append(PerFileIgnore(glob=glob, codes=frozenset(codes)))
 
     return Config(root=root, registry=resolved, per_file_ignores=per_file_ignores)
@@ -164,17 +162,15 @@ def rule_options(rule: Rule, *, code: str) -> Any:  # noqa: ANN401
     return options
 
 
-def require_live_glob(
-    glob: str, *, root: Path, allowed: frozenset[Path] | None = None
-) -> None:
+def require_live_glob(glob: str, *, root: Path, scope: GitScope) -> None:
     """Raise `ConfigError` unless the glob matches at least one project file.
 
     "The project" is the whole tree under root — `gather_files([root])`, not the
     files a given run lints — so partial runs never trip on globs aimed at trees
-    they aren't linting (ADR-0008). The same `allowed` exclusion a run applies is
+    they aren't linting (ADR-0008). The same `scope` exclusion a run applies is
     threaded here, so the liveness universe excludes `.venv`/gitignored trees.
     """
-    for file in gather_files(paths=[root], allowed=allowed):
+    for file in gather_files(paths=[root], scope=scope):
         if relative_posix(file, root=root).full_match(glob):
             return
     message = f"per-file-ignores glob matches no files: {glob}"

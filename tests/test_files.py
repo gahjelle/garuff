@@ -1,22 +1,33 @@
 """Filesystem seam — file gathering with its two exclusion layers.
 
 `gather_files` is the pure walk: it collects lintable files under the given
-paths and applies (1) dot-dir skipping always, and (2) an optional git-derived
-`allowed` intersection. `git_lintable` is the impure query that produces that
-`allowed` set from `git ls-files`. These tests drive both directly on
-`tmp_path` trees; the git happy-path is skipped where the `git` binary is
-absent, and the fallback branches are forced hermetically by monkeypatching.
+paths and applies (1) dot-dir skipping always, and (2) the git intersection
+carried by a `GitScope`. `git_lintable` is the impure query behind that scope;
+`discover_git_scope` wraps it and owns the no-git warning. These tests drive
+each directly on `tmp_path` trees; the git happy-path is skipped where the `git`
+binary is absent, and every fallback branch is forced hermetically by
+monkeypatching so a git-less machine still exercises it.
 """
 
 import shutil
 import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
-from garuff.files import gather_files, git_lintable
+from garuff.files import (
+    NO_GIT_WARNING,
+    GitScope,
+    discover_git_scope,
+    gather_files,
+    git_lintable,
+)
 
 needs_git = pytest.mark.skipif(shutil.which("git") is None, reason="git not installed")
+
+# A scope for the pure Layer-1 tests: no git work-tree, so no intersection.
+NO_GIT = GitScope(allowed=None)
 
 
 def build_tree(root: Path, files: list[str]) -> None:
@@ -53,17 +64,17 @@ def test_gather_skips_dot_directories_at_any_depth(tmp_path: Path) -> None:
         ],
     )
 
-    gathered = gather_files(paths=[tmp_path])
+    gathered = gather_files(paths=[tmp_path], scope=NO_GIT)
 
     assert gathered == sorted([tmp_path / "src/a.py", tmp_path / "pkg/e.py"])
 
 
-def test_gather_intersects_with_allowed_when_given(tmp_path: Path) -> None:
-    """A non-None `allowed` drops files outside it — even non-dot ones."""
+def test_gather_intersects_with_scope_allow_set(tmp_path: Path) -> None:
+    """A scope with an allow-set drops files outside it — even non-dot ones."""
     build_tree(tmp_path, ["src/a.py", "build/f.py", "pkg/e.py"])
-    allowed = frozenset({(tmp_path / "src/a.py").resolve()})
+    scope = GitScope(allowed=frozenset({(tmp_path / "src/a.py").resolve()}))
 
-    gathered = gather_files(paths=[tmp_path], allowed=allowed)
+    gathered = gather_files(paths=[tmp_path], scope=scope)
 
     assert gathered == [tmp_path / "src/a.py"]
 
@@ -72,7 +83,7 @@ def test_explicit_file_inside_dot_dir_is_linted(tmp_path: Path) -> None:
     """Naming a file directly opts it in even under a dot-prefixed directory."""
     build_tree(tmp_path, [".venv/x.py"])
 
-    gathered = gather_files(paths=[tmp_path / ".venv/x.py"])
+    gathered = gather_files(paths=[tmp_path / ".venv/x.py"], scope=NO_GIT)
 
     assert gathered == [tmp_path / ".venv/x.py"]
 
@@ -83,7 +94,7 @@ def test_explicit_dot_dir_is_walked_but_nested_dot_dirs_are_pruned(
     """Naming a dot-dir walks its plain children; deeper dot-dirs stay skipped."""
     build_tree(tmp_path, [".claude/y.md", ".claude/.git/z.md"])
 
-    gathered = gather_files(paths=[tmp_path / ".claude"])
+    gathered = gather_files(paths=[tmp_path / ".claude"], scope=NO_GIT)
 
     assert gathered == [tmp_path / ".claude/y.md"]
 
@@ -92,9 +103,19 @@ def test_dot_prefixed_filename_is_not_pruned_by_layer_one(tmp_path: Path) -> Non
     """Layer 1 keys on directory components, not the filename itself."""
     build_tree(tmp_path, ["pkg/.foo.py"])
 
-    gathered = gather_files(paths=[tmp_path])
+    gathered = gather_files(paths=[tmp_path], scope=NO_GIT)
 
     assert gathered == [tmp_path / "pkg/.foo.py"]
+
+
+def test_git_scope_distinguishes_no_git_from_empty_allow_set() -> None:
+    """`available` separates the None sentinel (no git) from an empty allow-set."""
+    assert GitScope(allowed=None).available is False
+    assert GitScope(allowed=frozenset()).available is True
+    # An empty allow-set permits nothing; the no-git sentinel permits everything.
+    some_file = Path("x.py")
+    assert GitScope(allowed=frozenset()).permits(some_file) is False
+    assert GitScope(allowed=None).permits(some_file) is True
 
 
 @needs_git
@@ -138,9 +159,25 @@ def test_end_to_end_gather_drops_gitignored_and_dot_trees(tmp_path: Path) -> Non
     git(tmp_path, "add", "src/a.py", ".gitignore")
     git(tmp_path, "commit", "-qm", "init")
 
-    gathered = gather_files(paths=[tmp_path], allowed=git_lintable(tmp_path))
+    gathered = gather_files(paths=[tmp_path], scope=discover_git_scope(tmp_path))
 
     assert gathered == [tmp_path / "src/a.py"]
+
+
+def test_git_lintable_empty_when_tree_is_all_ignored(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Empty git output yields an empty frozenset — "lint nothing", not None."""
+    monkeypatch.setattr("garuff.files.shutil.which", lambda _: "/usr/bin/git")
+    monkeypatch.setattr(
+        "garuff.files.subprocess.run",
+        lambda *_a, **_k: SimpleNamespace(stdout=b""),
+    )
+
+    allowed = git_lintable(tmp_path)
+
+    assert allowed == frozenset()
+    assert allowed is not None
 
 
 def test_git_lintable_none_when_git_binary_absent(
@@ -152,14 +189,24 @@ def test_git_lintable_none_when_git_binary_absent(
     assert git_lintable(tmp_path) is None
 
 
-def test_git_lintable_none_when_subprocess_raises(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize(
+    "error",
+    [
+        subprocess.CalledProcessError(1, "git"),
+        FileNotFoundError,
+        OSError,
+    ],
+)
+def test_git_lintable_none_when_subprocess_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    error: type[Exception] | Exception,
 ) -> None:
-    """A git that fails to exec (FileNotFoundError) degrades to None, not a crash."""
+    """Every failure the `except` guards degrades to None hermetically, no crash."""
     monkeypatch.setattr("garuff.files.shutil.which", lambda _: "/usr/bin/git")
 
     def boom(*_args: object, **_kwargs: object) -> None:
-        raise FileNotFoundError
+        raise error
 
     monkeypatch.setattr("garuff.files.subprocess.run", boom)
 
@@ -170,3 +217,27 @@ def test_git_lintable_none_when_subprocess_raises(
 def test_git_lintable_none_outside_a_work_tree(tmp_path: Path) -> None:
     """A directory that is not a git repo yields None (CalledProcessError branch)."""
     assert git_lintable(tmp_path) is None
+
+
+def test_discover_git_scope_warns_once_when_git_is_absent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """With no git, discover emits the warning to the sink exactly once."""
+    monkeypatch.setattr("garuff.files.shutil.which", lambda _: None)
+    warnings: list[str] = []
+
+    scope = discover_git_scope(tmp_path, warn=warnings.append)
+
+    assert scope.available is False
+    assert warnings == [NO_GIT_WARNING]
+
+
+def test_discover_git_scope_stays_silent_without_a_sink(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """No warn sink means no output even when git is unavailable."""
+    monkeypatch.setattr("garuff.files.shutil.which", lambda _: None)
+
+    scope = discover_git_scope(tmp_path)
+
+    assert scope.available is False
