@@ -30,7 +30,7 @@ needs_git = pytest.mark.skipif(shutil.which("git") is None, reason="git not inst
 NO_GIT = GitScope(allowed=None)
 
 
-def build_tree(root: Path, files: list[str]) -> None:
+def build_tree(root: Path, *, files: list[str]) -> None:
     """Create each project-relative path under root as an empty-ish file."""
     for relpath in files:
         path = root / relpath
@@ -55,7 +55,7 @@ def test_gather_skips_dot_directories_at_any_depth(tmp_path: Path) -> None:
     """Files under a dot-prefixed directory are dropped, however deep."""
     build_tree(
         tmp_path,
-        [
+        files=[
             "src/a.py",
             ".venv/lib/b.py",
             ".claude/skills/c.md",
@@ -71,7 +71,7 @@ def test_gather_skips_dot_directories_at_any_depth(tmp_path: Path) -> None:
 
 def test_gather_intersects_with_scope_allow_set(tmp_path: Path) -> None:
     """A scope with an allow-set drops files outside it — even non-dot ones."""
-    build_tree(tmp_path, ["src/a.py", "build/f.py", "pkg/e.py"])
+    build_tree(tmp_path, files=["src/a.py", "build/f.py", "pkg/e.py"])
     scope = GitScope(allowed=frozenset({(tmp_path / "src/a.py").resolve()}))
 
     gathered = gather_files(paths=[tmp_path], scope=scope)
@@ -81,7 +81,7 @@ def test_gather_intersects_with_scope_allow_set(tmp_path: Path) -> None:
 
 def test_explicit_file_inside_dot_dir_is_linted(tmp_path: Path) -> None:
     """Naming a file directly opts it in even under a dot-prefixed directory."""
-    build_tree(tmp_path, [".venv/x.py"])
+    build_tree(tmp_path, files=[".venv/x.py"])
 
     gathered = gather_files(paths=[tmp_path / ".venv/x.py"], scope=NO_GIT)
 
@@ -92,7 +92,7 @@ def test_explicit_dot_dir_is_walked_but_nested_dot_dirs_are_pruned(
     tmp_path: Path,
 ) -> None:
     """Naming a dot-dir walks its plain children; deeper dot-dirs stay skipped."""
-    build_tree(tmp_path, [".claude/y.md", ".claude/.git/z.md"])
+    build_tree(tmp_path, files=[".claude/y.md", ".claude/.git/z.md"])
 
     gathered = gather_files(paths=[tmp_path / ".claude"], scope=NO_GIT)
 
@@ -101,7 +101,7 @@ def test_explicit_dot_dir_is_walked_but_nested_dot_dirs_are_pruned(
 
 def test_dot_prefixed_filename_is_not_pruned_by_layer_one(tmp_path: Path) -> None:
     """Layer 1 keys on directory components, not the filename itself."""
-    build_tree(tmp_path, ["pkg/.foo.py"])
+    build_tree(tmp_path, files=["pkg/.foo.py"])
 
     gathered = gather_files(paths=[tmp_path], scope=NO_GIT)
 
@@ -126,7 +126,7 @@ def test_git_lintable_reflects_tracked_and_untracked_but_not_ignored(
     init_repo(tmp_path)
     build_tree(
         tmp_path,
-        [
+        files=[
             ".gitignore",
             "tracked.py",
             "untracked.py",
@@ -153,7 +153,7 @@ def test_end_to_end_gather_drops_gitignored_and_dot_trees(tmp_path: Path) -> Non
     init_repo(tmp_path)
     build_tree(
         tmp_path,
-        ["src/a.py", "build/f.py", ".venv/lib/b.py", ".gitignore"],
+        files=["src/a.py", "build/f.py", ".venv/lib/b.py", ".gitignore"],
     )
     (tmp_path / ".gitignore").write_text("build/\n.venv/\n", encoding="utf-8")
     git(tmp_path, "add", "src/a.py", ".gitignore")
@@ -165,7 +165,7 @@ def test_end_to_end_gather_drops_gitignored_and_dot_trees(tmp_path: Path) -> Non
 
 
 def test_git_lintable_empty_when_tree_is_all_ignored(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    *, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Empty git output yields an empty frozenset — "lint nothing", not None."""
     monkeypatch.setattr("garuff.files.shutil.which", lambda _: "/usr/bin/git")
@@ -181,7 +181,7 @@ def test_git_lintable_empty_when_tree_is_all_ignored(
 
 
 def test_git_lintable_none_when_git_binary_absent(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    *, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """No `git` on PATH degrades to None without invoking subprocess."""
     monkeypatch.setattr("garuff.files.shutil.which", lambda _: None)
@@ -198,6 +198,7 @@ def test_git_lintable_none_when_git_binary_absent(
     ],
 )
 def test_git_lintable_none_when_subprocess_fails(
+    *,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     error: type[Exception] | Exception,
@@ -220,7 +221,7 @@ def test_git_lintable_none_outside_a_work_tree(tmp_path: Path) -> None:
 
 
 def test_discover_git_scope_warns_once_when_git_is_absent(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    *, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """With no git, discover emits the warning to the sink exactly once."""
     monkeypatch.setattr("garuff.files.shutil.which", lambda _: None)
@@ -233,7 +234,7 @@ def test_discover_git_scope_warns_once_when_git_is_absent(
 
 
 def test_discover_git_scope_stays_silent_without_a_sink(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    *, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """No warn sink means no output even when git is unavailable."""
     monkeypatch.setattr("garuff.files.shutil.which", lambda _: None)

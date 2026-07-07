@@ -37,6 +37,7 @@ IGNORED = [
 
 @pytest.mark.parametrize("snippet", FLAGGED)
 def test_flagged_forms(
+    *,
     snippet: str,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
@@ -52,6 +53,7 @@ def test_flagged_forms(
 
 @pytest.mark.parametrize("snippet", IGNORED)
 def test_ignored_forms(
+    *,
     snippet: str,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
@@ -66,6 +68,7 @@ def test_ignored_forms(
 
 
 def test_flags_possessive_prefix_in_python(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -74,11 +77,12 @@ def test_flags_possessive_prefix_in_python(
 
     run = lint(["src"])
 
-    assert run.at("src/mod.py", 1, 1) == ["GAC011"]
+    assert run.at("src/mod.py", line=1, col=1) == ["GAC011"]
     assert run.exit_code == 1
 
 
 def test_flags_possessive_prefix_in_markdown(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -87,5 +91,5 @@ def test_flags_possessive_prefix_in_markdown(
 
     run = lint(["docs/guide.md"])
 
-    assert run.at("docs/guide.md", 1, 10) == ["GAC011"]
+    assert run.at("docs/guide.md", line=1, col=10) == ["GAC011"]
     assert run.exit_code == 1

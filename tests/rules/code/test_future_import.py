@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 
 
 def test_flags_future_annotations_import(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -18,5 +19,5 @@ def test_flags_future_annotations_import(
 
     run = lint(["src"])
 
-    assert run.at("src/mod.py", 1, 1) == ["GAC001"]
+    assert run.at("src/mod.py", line=1, col=1) == ["GAC001"]
     assert run.exit_code == 1

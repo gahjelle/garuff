@@ -27,10 +27,6 @@ dev = [
 # garuff dogfoods its own rules; this table is the first real consumer of the
 # per-file-ignores feature.
 [tool.garuff.per-file-ignores]
-# GAC008 (at most one positional parameter) — test functions take pytest
-# fixtures as positional params and helpers take several by nature, so silence
-# it across the suite.
-"tests/**" = ["GAC008"]
 # GAC011 (possessive `my`) stays active across tests on purpose — tests are a
 # place an agent might be tempted to reach for a `my_` name. Only the two files
 # whose fixtures are deliberately *about* `my` opt out: the possessive rule's

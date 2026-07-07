@@ -19,6 +19,7 @@ FUTURE_IMPORT = "from __future__ import annotations\n"  # trips GAC001
 
 
 def test_per_file_ignore_silences_matching_files_only(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -35,5 +36,5 @@ def test_per_file_ignore_silences_matching_files_only(
 
     run = lint(["src", "tests"])
 
-    assert run.at("src/mod.py", 1, 1) == ["GAC001"]
-    assert run.at("tests/test_mod.py", 1, 1) == []
+    assert run.at("src/mod.py", line=1, col=1) == ["GAC001"]
+    assert run.at("tests/test_mod.py", line=1, col=1) == []
