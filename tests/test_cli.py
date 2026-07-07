@@ -64,11 +64,16 @@ def test_explicit_missing_path_exits_two(
     assert "does_not_exist" in err
 
 
-def test_default_missing_tests_dir_is_skipped(
+def test_default_lints_root_without_a_tests_dir(
     project: Callable[[dict[str, str]], Path],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """A missing default path (no tests/) is skipped, not an error."""
+    """Bare `garuff` lints the root even when the project has no tests/ dir.
+
+    The default is the project root (which always exists), so a project with
+    only `src/` still lints cleanly — no "does not exist" error for a path
+    garuff itself chose.
+    """
     project({"src/mod.py": "from __future__ import annotations\n"})
 
     code = main([])
@@ -79,23 +84,30 @@ def test_default_missing_tests_dir_is_skipped(
     assert "does not exist" not in captured.err
 
 
-def test_defaults_lint_both_src_and_tests(
+def test_defaults_lint_whole_root_including_docs(
     project: Callable[[dict[str, str]], Path],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """With no paths given, both src/ and tests/ are linted."""
+    """With no paths given, the whole root is linted, so project (GAA) rules run.
+
+    `docs/adr/` is outside the old `[src, tests]` default; a bare run reporting
+    its GAA violation proves the default now widens to the project root and the
+    ADR project rules run without being named.
+    """
     project(
         {
             "src/a.py": "x = 1\n",
             "tests/test_a.py": "from __future__ import annotations\n",
+            "docs/adr/0002-gap.md": "# A decision with no 0001\n",
         }
     )
 
     code = main([])
 
-    out = capsys.readouterr().out
+    captured = capsys.readouterr()
     assert code == 1
-    assert "tests/test_a.py:1:1: GAC001" in out
+    assert "tests/test_a.py:1:1: GAC001" in captured.out
+    assert "GAA002" in captured.out
 
 
 def test_unparsable_file_is_reported_and_skipped(

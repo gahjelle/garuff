@@ -24,19 +24,21 @@ def test_own_src_is_clean(
     assert code == 0, captured.out
 
 
-def test_own_dogfood_scope_is_clean(
+def test_own_whole_root_is_clean(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """The full `just dogfood` scope (src, tests, docs/adr) reports no violations.
+    """Bare `garuff` over the whole project root reports no violations.
 
-    Linting `tests/` exercises the repo's own `per-file-ignores`: fixture data
-    and helpers there trip GAC008/GAC011 by design, so the config silences those
-    codes under `tests/**`. A clean run proves both the rules and the ignores.
+    This is the default scope (`just dogfood`): src, tests, docs, and the ADRs,
+    with `.venv`/dot-dirs/gitignored trees excluded. Linting `tests/` exercises
+    the repo's own `per-file-ignores`: fixture data and helpers there trip
+    GAC008/GAC011 by design, so the config silences those codes under
+    `tests/**`. A clean run proves both the rules and the ignores.
     """
     monkeypatch.chdir(PROJECT_ROOT)
 
-    code = main(["src", "tests", "docs/adr"])
+    code = main([])
 
     captured = capsys.readouterr()
     assert code == 0, captured.out
