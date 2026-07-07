@@ -1,5 +1,8 @@
 # Project-scope rules run over the gathered files, honestly bounded by paths
 
+*Status: the deferred "honest default" note below is superseded by ADR-0010 —
+bare `garuff` now defaults to the project root.*
+
 The obvious reading of project scope — and the original tracer #3 wording — was
 "run project rules once against the discovered **root**." We rejected that:
 passing `garuff src/` would then report `docs/adr/` violations that live nowhere
@@ -28,4 +31,5 @@ parameter.
   vendored trees — which is its own design pass (#16), and prose suppression for
   the possessive-`my` rule, which is config work (#4). Once both land, the
   default flips from `[src, tests]` to the project root and everything composes:
-  scope still follows paths, the default just widens.
+  scope still follows paths, the default just widens. — done in ADR-0010; bare
+  `garuff` now defaults to the project root.

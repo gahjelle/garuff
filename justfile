@@ -15,9 +15,9 @@ lint:
 typecheck:
     uv run ty check -q
 
-# Lint garuff's own source, tests, and ADRs with garuff.
+# Lint garuff's whole project root with garuff (the default scope).
 dogfood:
-    uv run garuff src tests docs/adr
+    uv run garuff
 
 # Run the test suite quietly.
 test *args:

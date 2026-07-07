@@ -18,7 +18,7 @@ from garuff.runner import run
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Lint the given paths (default `src/`, `tests/`); return the exit code."""
+    """Lint the given paths (default: the project root); return the exit code."""
     parser = argparse.ArgumentParser(prog=branding.PROGRAM_NAME)
     parser.add_argument("paths", nargs="*", help="files or directories to lint")
     args = parser.parse_args(argv)
@@ -38,7 +38,7 @@ def main(argv: list[str] | None = None) -> int:
                 sys.stderr.write(f"path does not exist: {path}\n")
             return 2
     else:
-        paths = [root / "src", root / "tests"]
+        paths = [root]
 
     result = run(paths=paths, config=config, scope=scope)
     if result.violations:

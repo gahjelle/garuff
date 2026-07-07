@@ -45,7 +45,8 @@ garuff's coding conventions *are its own product* — the `GAC`/`GAA` rules it w
 - Return `Self`, not a string forward-ref to the enclosing class.
 - At most **1 positional parameter** — make the rest keyword-only (after a bare `*`).
 - `Protocol` methods omit the `...` body — the docstring is body enough.
-- No possessive `my` prefix (`my_`, `my-`, `My<Upper>`) in code or docs.
+- No possessive `my` prefix — not as a snake-case (`my` + `_`), kebab-case
+  (`my` + `-`), or camelCase (`My` + a capital) name, in code or docs.
 
 The **authoritative catalog** of these rules — codes, scopes, exact semantics, and the old `WNG` originals they descend from — lives in [`docs/structure-plan.md`](../structure-plan.md), `CONTEXT.md`, and the tracer issues. Don't restate rule semantics here; that's the one place they're defined.
 
