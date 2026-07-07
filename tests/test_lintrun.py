@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
 
 def test_round_trip_parses_real_output(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:

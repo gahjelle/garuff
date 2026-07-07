@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 
 
 def test_duplicate_adr_number_flags_gaa001(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:

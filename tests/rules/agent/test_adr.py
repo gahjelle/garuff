@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
 
 def test_adr_directory_out_of_scope_is_silent_no_op(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -34,6 +35,7 @@ def test_adr_directory_out_of_scope_is_silent_no_op(
 
 
 def test_clean_adr_directory_yields_no_violations(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -51,6 +53,7 @@ def test_clean_adr_directory_yields_no_violations(
 
 
 def test_non_adr_files_in_the_directory_are_ignored(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -72,6 +75,7 @@ def test_non_adr_files_in_the_directory_are_ignored(
 
 
 def test_duplicate_without_gap_does_not_also_flag_gaa002(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:

@@ -15,6 +15,7 @@ GAPLESS_MESSAGE = (
 
 
 def test_gap_in_adr_numbers_flags_gaa002(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -35,6 +36,7 @@ def test_gap_in_adr_numbers_flags_gaa002(
 
 
 def test_missing_0001_flags_gaa002(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:

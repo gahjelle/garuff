@@ -12,6 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_own_src_is_clean(
+    *,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -25,6 +26,7 @@ def test_own_src_is_clean(
 
 
 def test_own_whole_root_is_clean(
+    *,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:

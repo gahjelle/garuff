@@ -22,7 +22,7 @@ DEFAULT_PYPROJECT = '[project]\nname = "sample"\n'
 
 @pytest.fixture
 def project(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    *, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> Callable[[dict[str, str]], Path]:
     """Build a throwaway project under `tmp_path` and chdir into it.
 

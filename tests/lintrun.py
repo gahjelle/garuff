@@ -61,7 +61,7 @@ class LintRun:
         return [violation.code for violation in self.violations]
 
     def at(
-        self, path: str, line: int | None = None, col: int | None = None
+        self, path: str, *, line: int | None = None, col: int | None = None
     ) -> list[str]:
         """Return the codes reported at exactly this location (path, line, col)."""
         return [

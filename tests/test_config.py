@@ -28,6 +28,7 @@ def pyproject(body: str) -> str:
 
 
 def test_rules_are_active_without_a_config_table(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -37,10 +38,11 @@ def test_rules_are_active_without_a_config_table(
     run = lint(["src"])
 
     assert run.exit_code == 1
-    assert run.at("src/mod.py", 1, 1) == ["GAC001"]
+    assert run.at("src/mod.py", line=1, col=1) == ["GAC001"]
 
 
 def test_ignore_drops_the_named_rule(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -61,6 +63,7 @@ def test_ignore_drops_the_named_rule(
 
 
 def test_ignore_drops_a_project_scope_rule(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -82,6 +85,7 @@ def test_ignore_drops_a_project_scope_rule(
 
 
 def test_unknown_ignore_code_aborts_with_exit_two(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -102,6 +106,7 @@ def test_unknown_ignore_code_aborts_with_exit_two(
 
 
 def test_dead_glob_aborts_with_exit_two(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -123,6 +128,7 @@ def test_dead_glob_aborts_with_exit_two(
 
 
 def test_glob_is_live_against_the_whole_project_not_the_run(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -145,10 +151,11 @@ def test_glob_is_live_against_the_whole_project_not_the_run(
     run = lint(["src"])
 
     assert run.exit_code == 1
-    assert run.at("src/mod.py", 1, 1) == ["GAC001"]
+    assert run.at("src/mod.py", line=1, col=1) == ["GAC001"]
 
 
 def test_unknown_top_level_key_aborts_with_exit_two(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -167,6 +174,7 @@ def test_unknown_top_level_key_aborts_with_exit_two(
 
 
 def test_options_for_an_optionless_rule_aborts_with_exit_two(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -187,6 +195,7 @@ def test_options_for_an_optionless_rule_aborts_with_exit_two(
 
 
 def test_unknown_option_key_aborts_with_exit_two(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -207,6 +216,7 @@ def test_unknown_option_key_aborts_with_exit_two(
 
 
 def test_wrong_option_type_aborts_with_exit_two(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -227,6 +237,7 @@ def test_wrong_option_type_aborts_with_exit_two(
 
 
 def test_unknown_rule_code_in_options_aborts_with_exit_two(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -247,6 +258,7 @@ def test_unknown_rule_code_in_options_aborts_with_exit_two(
 
 
 def test_option_override_changes_what_is_flagged(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -263,11 +275,12 @@ def test_option_override_changes_what_is_flagged(
 
     run = lint(["src"])
 
-    assert run.at("src/three.py", 1, 1) == []
-    assert run.at("src/four.py", 1, 1) == ["GAC008"]
+    assert run.at("src/three.py", line=1, col=1) == []
+    assert run.at("src/four.py", line=1, col=1) == ["GAC008"]
 
 
 def test_per_file_ignores_silence_the_listed_codes(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -289,6 +302,7 @@ def test_per_file_ignores_silence_the_listed_codes(
 
 
 def test_unknown_per_file_ignore_code_aborts_with_exit_two(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -309,6 +323,7 @@ def test_unknown_per_file_ignore_code_aborts_with_exit_two(
 
 
 def test_project_scope_code_in_per_file_ignores_aborts_with_exit_two(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:

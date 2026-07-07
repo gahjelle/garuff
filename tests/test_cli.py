@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 
 def test_clean_project_exits_zero(
+    *,
     project: Callable[[dict[str, str]], Path],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -33,6 +34,7 @@ def test_clean_project_exits_zero(
 
 
 def test_missing_pyproject_exits_two(
+    *,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -51,6 +53,7 @@ def test_missing_pyproject_exits_two(
 
 
 def test_explicit_missing_path_exits_two(
+    *,
     project: Callable[[dict[str, str]], Path],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -65,6 +68,7 @@ def test_explicit_missing_path_exits_two(
 
 
 def test_default_lints_root_without_a_tests_dir(
+    *,
     project: Callable[[dict[str, str]], Path],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -85,6 +89,7 @@ def test_default_lints_root_without_a_tests_dir(
 
 
 def test_defaults_lint_whole_root_including_docs(
+    *,
     project: Callable[[dict[str, str]], Path],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -111,6 +116,7 @@ def test_defaults_lint_whole_root_including_docs(
 
 
 def test_unparsable_file_is_reported_and_skipped(
+    *,
     project: Callable[[dict[str, str]], Path],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -133,6 +139,7 @@ def test_unparsable_file_is_reported_and_skipped(
 
 
 def test_prints_summary_to_stderr(
+    *,
     project: Callable[[dict[str, str]], Path],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -148,6 +155,7 @@ def test_prints_summary_to_stderr(
 
 
 def test_summary_splits_counts_by_extension(
+    *,
     project: Callable[[dict[str, str]], Path],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -168,6 +176,7 @@ def test_summary_splits_counts_by_extension(
 
 
 def test_source_and_text_violations_reported_line_sorted(
+    *,
     project: Callable[[dict[str, str]], Path],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -191,6 +200,7 @@ def test_source_and_text_violations_reported_line_sorted(
 
 
 def test_invalid_config_exits_two(
+    *,
     project: Callable[[dict[str, str]], Path],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -212,6 +222,7 @@ def test_invalid_config_exits_two(
 
 
 def test_non_git_tree_warns_exactly_once_and_still_lints(
+    *,
     project: Callable[[dict[str, str]], Path],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -233,6 +244,7 @@ def test_non_git_tree_warns_exactly_once_and_still_lints(
 
 
 def test_help_usage_reflects_program_name(
+    *,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:

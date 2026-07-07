@@ -48,6 +48,7 @@ IGNORED = {
 
 @pytest.mark.parametrize("source", FLAGGED.values(), ids=FLAGGED.keys())
 def test_flagged_functions(
+    *,
     source: str,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
@@ -63,6 +64,7 @@ def test_flagged_functions(
 
 @pytest.mark.parametrize("source", IGNORED.values(), ids=IGNORED.keys())
 def test_ignored_functions(
+    *,
     source: str,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
@@ -76,6 +78,7 @@ def test_ignored_functions(
 
 
 def test_locates_at_the_def_line(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -84,10 +87,11 @@ def test_locates_at_the_def_line(
 
     run = lint(["src"])
 
-    assert run.at("src/mod.py", 1, 1) == ["GAC008"]
+    assert run.at("src/mod.py", line=1, col=1) == ["GAC008"]
 
 
 def test_max_positional_args_option_raises_the_ceiling(
+    *,
     project: Callable[[dict[str, str]], Path],
     lint: Callable[[list[str]], LintRun],
 ) -> None:
@@ -103,5 +107,5 @@ def test_max_positional_args_option_raises_the_ceiling(
 
     run = lint(["src"])
 
-    assert run.at("src/two.py", 1, 1) == []
-    assert run.at("src/three.py", 1, 1) == ["GAC008"]
+    assert run.at("src/two.py", line=1, col=1) == []
+    assert run.at("src/three.py", line=1, col=1) == ["GAC008"]
