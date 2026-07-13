@@ -16,3 +16,8 @@ def test_config_table_derives_from_name() -> None:
 def test_config_table_path_splits_the_dotted_table() -> None:
     """CONFIG_TABLE_PATH is the dotted table split into keys for walking pyproject."""
     assert branding.CONFIG_TABLE_PATH == ["tool", branding.NAME]
+
+
+def test_directive_marker_derives_from_name() -> None:
+    """The inline directive is namespaced by NAME, so a rebrand renames it too."""
+    assert f"{branding.NAME}: ignore" == branding.DIRECTIVE_MARKER

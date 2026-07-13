@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Self
 
+from garuff import branding
 from garuff.rule import Rule
 
 
@@ -86,9 +87,9 @@ class DirectiveError:
     message: str
 
     def render(self, *, root: Path) -> str:
-        """Format as `path:line:col: invalid garuff directive: message`."""
+        """Format as `path:line:col: invalid <name> directive: message`."""
         location = self.location.render(root=root)
-        return f"{location}: invalid garuff directive: {self.message}"
+        return f"{location}: invalid {branding.NAME} directive: {self.message}"
 
 
 @dataclass(kw_only=True)

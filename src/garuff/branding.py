@@ -17,3 +17,6 @@ CONFIG_TABLE = f"tool.{NAME}"
 
 CONFIG_TABLE_PATH = CONFIG_TABLE.split(".")
 """CONFIG_TABLE split into keys, for walking into the parsed `pyproject.toml`."""
+
+DIRECTIVE_MARKER = f"{NAME}: ignore"
+"""The inline suppression marker (`# <name>: ignore[CODE]`), derived from NAME."""

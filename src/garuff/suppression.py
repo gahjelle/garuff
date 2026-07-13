@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from garuff import branding
 from garuff.schemas import DirectiveError, Location
 
 if TYPE_CHECKING:
@@ -23,10 +24,13 @@ if TYPE_CHECKING:
 
 # The marker may sit anywhere in a comment, so it can share a line with another
 # tool's pragma. The lookbehind keeps it from matching the tail of a longer word.
-MARKER = re.compile(r"(?<![\w])garuff:\s*ignore")
+# The brand half comes from `branding.NAME`, so a rebranded fork renames the
+# directive along with everything else (ADR-0005).
+NAME, _, KEYWORD = branding.DIRECTIVE_MARKER.partition(":")
+MARKER = re.compile(rf"(?<![\w]){re.escape(NAME)}:\s*{re.escape(KEYWORD.strip())}")
 BRACKET = re.compile(r"\s*\[([^\[\]]*)\]")
 
-MALFORMED = "malformed (expected ignore[CODE, ...])"
+MALFORMED = f"malformed (expected {KEYWORD.strip()}[CODE, ...])"
 
 
 @dataclass(kw_only=True)

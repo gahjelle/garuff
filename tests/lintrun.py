@@ -14,8 +14,10 @@ drift between the two.
 
 from dataclasses import dataclass, field
 
+from garuff import branding
+
 # The prefix `DirectiveError.render` writes where a violation writes its code.
-DIRECTIVE_ERROR_PREFIX = "invalid garuff directive: "
+DIRECTIVE_ERROR_PREFIX = f"invalid {branding.NAME} directive: "
 
 
 @dataclass(kw_only=True)
