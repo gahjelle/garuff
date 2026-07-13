@@ -1,9 +1,9 @@
 """Passive result and value types — the located, renderable outcomes of a run.
 
 This module is the low-dependency home for the data garuff produces: the
-`Location` value object, the `Violation` and `ParseFailure` that carry one, and
-the `RunResult` aggregate. The behaviour-carrying `Rule` hierarchy deliberately
-lives elsewhere (`rule.py`); see ADR-0004.
+`Location` value object, the `Violation`, `ParseFailure` and `DirectiveError`
+that carry one, and the `RunResult` aggregate. The behaviour-carrying `Rule`
+hierarchy deliberately lives elsewhere (`rule.py`); see ADR-0004.
 """
 
 from dataclasses import dataclass, field
@@ -75,12 +75,30 @@ class ParseFailure:
 
 
 @dataclass(kw_only=True)
+class DirectiveError:
+    """An invalid inline suppression directive, located at its marker.
+
+    Code-less by design: there is no rule behind it, so it can be neither
+    `ignore`d nor suppressed. See ADR-0011.
+    """
+
+    location: Location
+    message: str
+
+    def render(self, *, root: Path) -> str:
+        """Format as `path:line:col: invalid garuff directive: message`."""
+        location = self.location.render(root=root)
+        return f"{location}: invalid garuff directive: {self.message}"
+
+
+@dataclass(kw_only=True)
 class RunResult:
     """The outcome of a run: violations found, files linted, and files skipped."""
 
     violations: list[Violation]
     linted_by_suffix: dict[str, int]
     parse_failures: list[ParseFailure] = field(default_factory=list)
+    directive_errors: list[DirectiveError] = field(default_factory=list)
 
     @property
     def linted(self) -> int:

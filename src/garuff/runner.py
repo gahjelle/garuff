@@ -7,7 +7,14 @@ from typing import TYPE_CHECKING
 
 from garuff.files import GitScope, gather_files
 from garuff.rule import ProjectRule, SourceRule, TextRule
-from garuff.schemas import Location, ParseFailure, RunResult, Violation
+from garuff.schemas import (
+    DirectiveError,
+    Location,
+    ParseFailure,
+    RunResult,
+    Violation,
+)
+from garuff.suppression import extract
 
 if TYPE_CHECKING:
     from garuff.config import Config
@@ -31,6 +38,12 @@ def run(*, paths: list[Path], config: Config, scope: GitScope) -> RunResult:
     `ignore` (already applied to the resolved registry), never per-file-ignores.
     `scope` is git's view of the work-tree, forwarded to `gather_files` so the
     run honours git's exclusions.
+
+    A `.py` file's violations are collected, then filtered against the inline
+    directives found in it: source-scope and Python text-scope violations whose
+    line carries a matching directive are dropped. Non-`.py` files get no token
+    pass, and project rules run outside the loop, so neither is ever suppressed
+    inline.
     """
     registry = config.registry
     source_rules = [rule for rule in registry.rules if isinstance(rule, SourceRule)]
@@ -38,6 +51,7 @@ def run(*, paths: list[Path], config: Config, scope: GitScope) -> RunResult:
     project_rules = [rule for rule in registry.rules if isinstance(rule, ProjectRule)]
     violations: list[Violation] = []
     parse_failures: list[ParseFailure] = []
+    directive_errors: list[DirectiveError] = []
     linted: Counter[str] = Counter()
     files = gather_files(paths=paths, scope=scope)
     for file in files:
@@ -58,12 +72,26 @@ def run(*, paths: list[Path], config: Config, scope: GitScope) -> RunResult:
                     ),
                 )
                 continue
+            suppressions = extract(
+                text, path=file, known_codes=config.known_codes
+            )
+            directive_errors.extend(suppressions.errors)
+            found: list[Violation] = []
             for rule in source_rules:
                 if rule.code not in skip:
-                    violations.extend(rule.check(module, path=file))
-        for rule in text_rules:
-            if rule.code not in skip:
-                violations.extend(rule.check(text, path=file))
+                    found.extend(rule.check(module, path=file))
+            for rule in text_rules:
+                if rule.code not in skip:
+                    found.extend(rule.check(text, path=file))
+            violations.extend(
+                violation
+                for violation in found
+                if not suppressions.suppresses(violation)
+            )
+        else:
+            for rule in text_rules:
+                if rule.code not in skip:
+                    violations.extend(rule.check(text, path=file))
         linted[file.suffix] += 1
     for rule in project_rules:
         violations.extend(rule.check(files))
@@ -72,4 +100,5 @@ def run(*, paths: list[Path], config: Config, scope: GitScope) -> RunResult:
         violations=violations,
         linted_by_suffix=dict(linted),
         parse_failures=parse_failures,
+        directive_errors=directive_errors,
     )

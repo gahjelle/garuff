@@ -97,6 +97,18 @@ skipped, and — inside a git work-tree — anything git ignores is dropped. An
 explicitly named file bypasses exclusion; exclusion applies to directory
 traversal. _Avoid_: "all files under the path" (exclusion means it is a subset).
 
+**Directive**:
+The inline form of Suppression: a `# garuff: ignore[CODE, CODE]` marker found
+within a comment in a `.py` file, silencing the named rules on its own physical
+line and nowhere else. Matching is strictly line-to-line — a directive on line
+_N_ silences a matching violation only if that violation reports line _N_. Codes
+are required; there is no bare form. The marker may sit anywhere in a comment, so
+it can share a line with another tool's pragma (`# noqa # garuff: ignore[GAC001]`)
+or carry a trailing reason. A marker naming an unknown code, or one that is
+malformed (no brackets, empty brackets), is itself reported. Lives only in Python
+source, never Markdown, and never reaches project-scope rules.
+_Avoid_: noqa (garuff is namespaced; see ADR-0001), pragma, annotation
+
 **Per-file-ignore**:
 The path-pattern form of Suppression: a glob mapped to rule codes, silencing
 those codes for every linted file the glob matches. Globs are project-root

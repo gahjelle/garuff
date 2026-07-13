@@ -33,12 +33,16 @@ class Config:
     `registry` is the resolved registry (globally-ignored rules removed, options
     baked). `per_file_ignores` is the suppression entries, each matched per file
     when the runner selects which rules to run. `root` is the project root those
-    globs are anchored to (POSIX, root-relative).
+    globs are anchored to (POSIX, root-relative). `known_codes` is every code the
+    *full* registry knows, pre-`ignore`: the authority an inline directive's codes
+    are validated against, so a globally-ignored — but real — code reads as a
+    silent no-op rather than an unknown code.
     """
 
     root: Path
     registry: Registry
     per_file_ignores: list[PerFileIgnore]
+    known_codes: frozenset[str]
 
 
 def discover_root(*, start: Path) -> Path:
@@ -91,7 +95,12 @@ def load(*, root: Path, registry: Registry, scope: GitScope) -> Config:
         require_live_glob(glob, root=root, scope=scope)
         per_file_ignores.append(PerFileIgnore(glob=glob, codes=frozenset(codes)))
 
-    return Config(root=root, registry=resolved, per_file_ignores=per_file_ignores)
+    return Config(
+        root=root,
+        registry=resolved,
+        per_file_ignores=per_file_ignores,
+        known_codes=frozenset(registry.by_code),
+    )
 
 
 def require_known_code(code: str, *, registry: Registry) -> None:

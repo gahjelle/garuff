@@ -1,15 +1,22 @@
-"""Output — terse locator lines for each violation."""
+"""Output — terse locator lines for each finding."""
 
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from garuff.schemas import ParseFailure, Violation
+    from garuff.schemas import DirectiveError, ParseFailure, Violation
 
 
-def render_violations(*, violations: list[Violation], root: Path) -> str:
-    """Render each violation as a locator line, joined by newlines."""
-    return "\n".join(violation.render(root=root) for violation in violations)
+def render_findings(
+    *,
+    violations: list[Violation],
+    directive_errors: list[DirectiveError],
+    root: Path,
+) -> str:
+    """Render violations and directive errors as one stream, in location order."""
+    findings: list[Violation | DirectiveError] = [*violations, *directive_errors]
+    findings.sort(key=lambda finding: finding.location.sort_key)
+    return "\n".join(finding.render(root=root) for finding in findings)
 
 
 def render_parse_failures(*, failures: list[ParseFailure], root: Path) -> str:
@@ -23,9 +30,17 @@ SUMMARY_SUFFIX_ORDER = (".md", ".py")
 
 
 def render_summary(
-    *, linted_by_suffix: dict[str, int], skipped: int, violations: int
+    *,
+    linted_by_suffix: dict[str, int],
+    skipped: int,
+    violations: int,
+    directive_errors: int = 0,
 ) -> str:
-    """Render the one-line run summary for stderr, split by file extension."""
+    """Render the one-line run summary for stderr, split by file extension.
+
+    Directive errors are counted separately from violations — they are not rule
+    findings (ADR-0011) — and named only when there are any.
+    """
     extras = sorted(linted_by_suffix.keys() - set(SUMMARY_SUFFIX_ORDER))
     counts = [
         f"{count} {suffix} file{plural_suffix(count)}"
@@ -36,7 +51,11 @@ def render_summary(
     summary = f"{files} linted"
     if skipped:
         summary += f" ({skipped} skipped)"
-    return f"{summary}: {violations} violation{plural_suffix(violations)}"
+    summary += f": {violations} violation{plural_suffix(violations)}"
+    if directive_errors:
+        errors = f"{directive_errors} directive error{plural_suffix(directive_errors)}"
+        summary += f", {errors}"
+    return summary
 
 
 def plural_suffix(count: int) -> str:
