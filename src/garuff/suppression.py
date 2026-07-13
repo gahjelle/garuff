@@ -26,6 +26,8 @@ if TYPE_CHECKING:
 MARKER = re.compile(r"(?<![\w])garuff:\s*ignore")
 BRACKET = re.compile(r"\s*\[([^\[\]]*)\]")
 
+MALFORMED = "malformed (expected ignore[CODE, ...])"
+
 
 @dataclass(kw_only=True)
 class Suppressions:
@@ -54,7 +56,13 @@ def extract(text: str, *, path: Path, known_codes: frozenset[str]) -> Suppressio
                 path=path, line=line, col=comment_col + marker.start() + 1
             )
             bracket = BRACKET.match(token.string, marker.end())
-            codes = [code.strip() for code in bracket.group(1).split(",")] if bracket else []
+            if bracket is None:
+                errors.append(DirectiveError(location=location, message=MALFORMED))
+                continue
+            codes = [code.strip() for code in bracket.group(1).split(",")]
+            if not all(codes):
+                errors.append(DirectiveError(location=location, message=MALFORMED))
+                continue
             for code in codes:
                 if code in known_codes:
                     by_line.setdefault(line, set()).add(code)
