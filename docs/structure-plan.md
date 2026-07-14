@@ -30,8 +30,9 @@ blueprint, not a spec of behaviour.
 - **Zero runtime dependencies** — stdlib only; config validated by hand against
   per-rule `@dataclass(kw_only=True)` schemas. See ADR-0002.
 - **Agent-first messages** — every rule carries `summary` / `rationale` / `fix`.
-  Default output = locator lines + each fired rule explained once (appendix).
-  `garuff explain <CODE>` renders the same text on demand.
+  `garuff check` output = locator lines + each fired rule explained once
+  (appendix). `garuff rule <CODE>` renders the same text on demand. See
+  ADR-0012, ADR-0014.
 - **Project discovery** — walk up to the nearest `pyproject.toml`; that
   directory is the project root. Config optional, file required. No
   `--config`/`--root` flag for now.
@@ -67,7 +68,7 @@ inline suppression throughout `CONTEXT.md`, this file, and ADR-0001.
 ```
 src/garuff/
 ├── __init__.py        # main() — thin shim into cli
-├── cli.py             # argparse: default lint command + `explain` subcommand; exit codes
+├── cli.py             # argparse: `check` + `rule` subcommands (no default command); exit codes
 ├── schemas.py         # passive result/value types: Location, Violation, ParseFailure, RunResult (ADR-0004)
 ├── rule.py            # SourceRule / TextRule / ProjectRule
 │                      #   shared: code, summary, rationale, fix, config schema, optional fixer
@@ -85,7 +86,8 @@ src/garuff/
 
 ## Run pipeline (`runner.py`)
 
-1. `cli` parses args → lint (default) or `explain CODE`.
+1. `cli` parses args → `check [paths]` or `rule CODE` (bare `garuff` → help,
+   exit 2; ADR-0013).
 2. `config.discover()` — nearest `pyproject.toml` = root; load & strictly
    validate `[tool.garuff]` before any linting.
 3. Gather files under the given paths (default `src/`, `tests/`, root-relative).
@@ -103,7 +105,8 @@ src/garuff/
 ## Deferred on purpose
 
 Bare `# garuff: ignore`; Markdown inline suppression; unused-directive detection
-(a future rule); `--config`/`--root` flags; `select`/allowlist mode; JSON output.
+(a future rule); `--config`/`--root` flags; `select`/allowlist mode; JSON output
+(including `--output-format json` for `garuff rule`, which ruff has and we don't).
 
 File exclusion **landed** in #16 (see ADR-0009): traversal skips dot-prefixed
 directories always, and inside a git work-tree intersects with git's view so

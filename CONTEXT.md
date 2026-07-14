@@ -18,11 +18,12 @@ A single convention garuff enforces, identified by a stable code (e.g. `GAC008`)
 A rule is the thing you enable, ignore, or configure. It is a first-class,
 self-describing object carrying its code, check, optional fixer, optional
 configuration, and — because garuff targets coding assistants — an agent-facing
-explanation in three parts: a terse **summary** (the default per-violation line,
-which a violation may override with location-specific detail), a
+**Explanation** in three parts: a terse **summary** (the default per-violation
+line, which a violation may override with location-specific detail), a
 **rationale** (why the convention exists), and a **fix** (the prescribed correct
-form). The rationale and fix are shown once per fired rule and via `garuff
-explain`.
+form). All three may reference the rule's own **Rule option** values, so they
+stay true whatever the project configures. The rationale and fix are shown once
+per fired rule (the **Appendix**) and via `garuff rule`.
 _Avoid_: Lint, policy, convention (as a noun for the addressable unit)
 
 **Rule code**:
@@ -40,10 +41,30 @@ _Avoid_: Error, warning, issue
 The act — and the callable — of applying one rule to one input. A rule's check
 produces zero or more violations.
 _Avoid_: Using "check" as a synonym for "rule".
+Note: the CLI command `garuff check` names a whole **run** — every rule over
+every gathered file. The domain term stays the narrow one: one rule, one input.
+See ADR-0013.
 
 **Registry**:
-The central collection of all known rules. garuff iterates the registry, filters
-by configuration, and runs each active rule's check.
+The central collection of *all* known rules, including globally `ignore`d ones —
+which is what makes an ignored rule explainable (`garuff rule <CODE>`). garuff
+iterates the registry, filters by configuration into the active subset, and runs
+each active rule's check.
+
+**Explanation**:
+A rule's agent-facing text in three parts: a terse **summary** (the default
+per-violation line), a **rationale** (why the convention exists), and a **fix**
+(the prescribed correct form). Authored on the rule, and rendered with the rule's
+own **Rule option** values substituted in, so it is true at any configuration
+(ADR-0014). Shown once per fired rule in the **Appendix**, and on demand by
+`garuff rule`.
+_Avoid_: Message, description, help text.
+
+**Appendix**:
+The explanation of each *distinct* rule that fired, printed once after the
+locator lines (ADR-0012). Forty violations of one rule produce forty locator
+lines and one explanation. It is the reason garuff can be verbose about *why*
+without being repetitive.
 
 **Rule category**:
 The subject matter a rule is about, encoded as the letter prefix of its code.
@@ -68,7 +89,8 @@ The kind of input a rule consumes. Orthogonal to category. One of:
 
 **Ignore**:
 Turning a rule off globally so it never runs. Configured once for the project.
-The only way to silence a project-scope rule.
+The only way to silence a project-scope rule. An ignored rule never runs, but
+stays explainable — `garuff rule <CODE>` renders it in full and says so.
 
 **Suppression**:
 Silencing a rule at a specific location while it stays active elsewhere. Applies

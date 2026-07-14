@@ -6,9 +6,10 @@ garuff enforces a curated set of conventions that [ruff](https://docs.astral.sh/
 and [ty](https://github.com/astral-sh/ty) can't express — and it explains every
 one of them in terms a coding assistant can act on.
 
-> ⚠️ **Early days.** The design is settled but the tool isn't built yet. This
-> README describes the vision; install instructions, the rule reference, and
-> configuration details will land as the implementation does.
+> ⚠️ **Early days.** The core linter runs — `garuff check` and `garuff rule`
+> work today — but the ruleset is still small and there's no packaged release
+> yet. This README describes the vision; the full rule reference and install
+> instructions will land as the implementation does.
 
 ## Why
 
@@ -42,6 +43,42 @@ fills the gap they leave:
 - **Zero dependencies.** garuff is a tool you install into every project's dev
   and CI environment, so it leans on nothing but the standard library and drops
   in without dependency friction.
+
+## Using it
+
+`garuff check [paths]` lints (no paths → the whole project root). Each violation
+is a terse locator line; once all findings are listed, an **appendix** explains
+each rule that fired — once, no matter how many times it tripped:
+
+```
+$ garuff check src
+src/config.py:1:1: GAC001 no `from __future__ import annotations`
+src/build.py:9:1: GAC008 `build` takes 3 positional parameters (at most 1)
+
+  GAC001  no `from __future__ import annotations`
+      why  Python 3.14 evaluates annotations lazily (PEP 649), so the import is
+           dead weight — it buys nothing and every module has to carry it.
+      fix  Delete the import:
+               - from __future__ import annotations
+
+  GAC008  keep positional parameters to at most 1
+      why  Positional parameters past the first make a call site ambiguous — the
+           reader has to count arguments and match them against the signature to
+           know what each one means.
+      fix  The limit is 1; move every parameter past it behind
+           a bare `*` so callers must name them:
+               def build(name, kind, size): ...     # before
+               def build(name, *, kind, size): ...  # after
+           ...
+```
+
+Findings go to stdout, one per line at column 0; the appendix is indented
+beneath them, so `garuff check | grep '^[^ ]'` filters the findings alone.
+
+`garuff rule <CODE>` prints that same explanation on demand — reading the
+project's configuration, so a tuned option (say a raised `max-positional-args`)
+shows up in the text — and `garuff rule --all` prints the whole ruleset. A rule
+you've turned off still explains itself, and says that it's ignored.
 
 ## Two kinds of rules
 
