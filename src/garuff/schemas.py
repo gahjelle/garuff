@@ -58,8 +58,13 @@ class Violation:
     detail: str | None = None
 
     def render(self, *, root: Path) -> str:
-        """Format as `path:line:col: CODE detail`, falling back to the summary."""
-        text = self.detail or self.rule.summary
+        """Format as `path:line:col: CODE detail`, falling back to the summary.
+
+        The fallback is the rule's *rendered* summary (option values already
+        substituted), so a configurable rule that yields no detail never prints
+        a raw `$placeholder` on its locator line.
+        """
+        text = self.detail or self.rule.explanation.summary
         return f"{self.location.render(root=root)}: {self.rule.code} {text}"
 
 

@@ -4,6 +4,7 @@ import pytest
 
 from garuff.exceptions import DuplicateRuleCodeError, UnknownRuleCodeError
 from garuff.registry import Registry
+from garuff.rules import REGISTRY
 from garuff.rules.code.future_import import FutureAnnotationsImport
 
 
@@ -36,3 +37,16 @@ def test_lookup_unknown_code_raises() -> None:
 
     with pytest.raises(UnknownRuleCodeError):
         registry.lookup("GAC999")
+
+
+def test_no_explanation_leaves_an_unresolved_placeholder() -> None:
+    """Every real rule's rendered text substitutes cleanly — no stray `$` survives.
+
+    `safe_substitute` prints an unknown `$name` verbatim rather than raising
+    inside a user's run, so a typo'd placeholder would slip out silently. This
+    registry-wide guard catches it at test time instead.
+    """
+    for rule in REGISTRY.rules:
+        explanation = rule.explanation
+        for text in (explanation.summary, explanation.rationale, explanation.fix):
+            assert "$" not in text, f"{rule.code}: {text!r}"

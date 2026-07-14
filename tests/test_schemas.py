@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from garuff.rule import Rule
+from garuff.rules.code.positional_args import POSITIONAL_ARGS
 from garuff.schemas import Location, Violation
 
 
@@ -66,4 +67,15 @@ def test_violation_without_detail_falls_back_to_rule_summary() -> None:
 
     assert violation.render(root=Path()) == (
         "a.py:1:1: GAC001 no `from __future__ import annotations`"
+    )
+
+
+def test_violation_without_detail_substitutes_the_summary_template() -> None:
+    """A configurable rule's fallback summary is substituted, never a raw `$name`."""
+    violation = Violation(
+        rule=POSITIONAL_ARGS, location=Location(path=Path("a.py"), line=1, col=1)
+    )
+
+    assert violation.render(root=Path()) == (
+        "a.py:1:1: GAC008 keep positional parameters to at most 1"
     )

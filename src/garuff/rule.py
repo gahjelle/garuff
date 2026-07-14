@@ -5,9 +5,10 @@ adds a `check` for the kind of input it consumes. See ADR-0003.
 """
 
 import abc
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from inspect import cleandoc
 from pathlib import Path
+from string import Template
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -15,6 +16,16 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
 
     from garuff.schemas import Violation
+
+
+@dataclass(kw_only=True)
+class Explanation:
+    """A rule's agent-facing text, with its option values substituted in."""
+
+    code: str
+    summary: str
+    rationale: str
+    fix: str
 
 
 @dataclass(kw_only=True)
@@ -39,6 +50,35 @@ class Rule:
         self.summary = cleandoc(self.summary)
         self.rationale = cleandoc(self.rationale)
         self.fix = cleandoc(self.fix)
+
+    @property
+    def option_values(self) -> dict[str, object]:
+        """The option values this rule's explanation templates may reference."""
+        options = getattr(self, "options", None)
+        return {} if options is None else asdict(options)
+
+    @property
+    def explanation(self) -> Explanation:
+        """Render this rule's text with its own option values substituted in.
+
+        The three fields are `string.Template` templates rendered at *render*
+        time — after `config.load` has baked in the project's option values
+        (ADR-0007, ADR-0014). `safe_substitute` prints an unresolvable `$name`
+        verbatim rather than raising inside a user's run; a registry-wide test
+        guards against a typo'd placeholder slipping out.
+        """
+        values = self.option_values
+
+        def fill(text: str) -> str:
+            """Substitute this rule's option values into one template field."""
+            return Template(text).safe_substitute(values)
+
+        return Explanation(
+            code=self.code,
+            summary=fill(self.summary),
+            rationale=fill(self.rationale),
+            fix=fill(self.fix),
+        )
 
 
 @dataclass(kw_only=True)
