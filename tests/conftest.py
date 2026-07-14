@@ -57,8 +57,8 @@ def lint(capsys: pytest.CaptureFixture[str]) -> Callable[[list[str]], LintRun]:
     """
 
     def run(paths: list[str]) -> LintRun:
-        """Invoke main() over `paths` and capture the run as a LintRun."""
-        exit_code = main(paths)
+        """Invoke `garuff check` over `paths` and capture the run as a LintRun."""
+        exit_code = main(["check", *paths])
         captured = capsys.readouterr()
         return LintRun(exit_code=exit_code, stdout=captured.out, stderr=captured.err)
 

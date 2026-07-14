@@ -278,9 +278,13 @@ def test_findings_are_interleaved_by_location_and_counted_separately(
 
     run = lint(["mod.py"])
 
-    assert run.stdout == (
-        "mod.py:1:20: invalid garuff directive: unknown code GAC999\n"
-        "mod.py:5:1: GAC008 `also_wide` takes 2 positional parameters (at most 1)\n"
-    )
+    finding_lines = [
+        line for line in run.stdout.splitlines() if line and not line.startswith(" ")
+    ]
+    assert finding_lines == [
+        "mod.py:1:20: invalid garuff directive: unknown code GAC999",
+        "mod.py:5:1: GAC008 `also_wide` takes 2 positional parameters (at most 1)",
+    ]
+    assert run.codes_explained == ["GAC008"]
     assert "1 violation, 1 directive error" in run.stderr
     assert run.exit_code == 1

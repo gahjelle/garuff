@@ -1,5 +1,6 @@
 """Output — terse locator lines and the agent-facing explanation block."""
 
+import textwrap
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -11,6 +12,10 @@ if TYPE_CHECKING:
 # columns, then two spaces, then the field's text. Continuation lines align
 # under the text (a `GUTTER + 2`-space hang), preserving an author's own indent.
 GUTTER = 7
+
+# Every appendix line is indented this far, so a column-0 line stays a finding
+# (ADR-0012). Blocks are separated by one blank line.
+APPENDIX_INDENT = "  "
 
 
 def render_field(label: str, *, text: str) -> list[str]:
@@ -35,6 +40,23 @@ def render_explanation(explanation: Explanation, *, note: str | None = None) -> 
     if note is not None:
         lines += render_field("note", text=note)
     return "\n".join(lines)
+
+
+def render_appendix(*, violations: list[Violation]) -> str:
+    """Render one block per distinct rule that fired, code-sorted and indented.
+
+    "Distinct rule that fired" means a rule with at least one reported
+    violation; forty violations of one rule yield one block. Each block is the
+    rule's explanation, indented two spaces so it never occupies column 0
+    (ADR-0012). Returns `""` when there are no violations, so the CLI writes
+    nothing.
+    """
+    rules = {violation.rule.code: violation.rule for violation in violations}
+    blocks = [
+        textwrap.indent(render_explanation(rule.explanation), APPENDIX_INDENT)
+        for _, rule in sorted(rules.items())
+    ]
+    return "\n\n".join(blocks)
 
 
 def render_findings(
