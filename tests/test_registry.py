@@ -39,6 +39,22 @@ def test_lookup_unknown_code_raises() -> None:
         registry.lookup("GAC999")
 
 
+def test_suggest_returns_the_closest_known_code() -> None:
+    """A near-miss code resolves to its closest known neighbour."""
+    rule = FutureAnnotationsImport(code="GAC001", summary="a", rationale="", fix="")
+    registry = Registry(rules=[rule])
+
+    assert registry.suggest("GAC00") == "GAC001"
+
+
+def test_suggest_returns_none_when_nothing_is_close() -> None:
+    """A code unlike anything known gets no suggestion."""
+    rule = FutureAnnotationsImport(code="GAC001", summary="a", rationale="", fix="")
+    registry = Registry(rules=[rule])
+
+    assert registry.suggest("ZZZZZZ") is None
+
+
 def test_no_explanation_leaves_an_unresolved_placeholder() -> None:
     """Every real rule's rendered text substitutes cleanly — no stray `$` survives.
 
