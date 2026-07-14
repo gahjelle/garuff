@@ -9,9 +9,9 @@ from garuff.config import discover_root, load
 from garuff.exceptions import ConfigError, ProjectNotFoundError
 from garuff.files import discover_git_scope
 from garuff.output import (
+    render_findings,
     render_parse_failures,
     render_summary,
-    render_violations,
 )
 from garuff.rules import REGISTRY
 from garuff.runner import run
@@ -41,8 +41,12 @@ def main(argv: list[str] | None = None) -> int:
         paths = [root]
 
     result = run(paths=paths, config=config, scope=scope)
-    if result.violations:
-        locators = render_violations(violations=result.violations, root=root)
+    if result.violations or result.directive_errors:
+        locators = render_findings(
+            violations=result.violations,
+            directive_errors=result.directive_errors,
+            root=root,
+        )
         sys.stdout.write(locators + "\n")
     if result.parse_failures:
         failures = render_parse_failures(failures=result.parse_failures, root=root)
@@ -51,6 +55,11 @@ def main(argv: list[str] | None = None) -> int:
         linted_by_suffix=result.linted_by_suffix,
         skipped=result.skipped,
         violations=len(result.violations),
+        directive_errors=len(result.directive_errors),
     )
     sys.stderr.write(summary + "\n")
-    return 1 if result.violations or result.parse_failures else 0
+    return (
+        1
+        if result.violations or result.parse_failures or result.directive_errors
+        else 0
+    )

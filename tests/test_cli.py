@@ -186,7 +186,10 @@ def test_source_and_text_violations_reported_line_sorted(
     __future__ import) — so a runner that emits source rules before text rules
     would misorder them without the (path, line, col) sort.
     """
-    source = '"""my_helper docstring."""\nfrom __future__ import annotations\n'
+    source = (
+        '"""my_helper docstring."""\n'  # garuff: ignore[GAC011]
+        "from __future__ import annotations\n"
+    )
     project({"src/mod.py": source})
 
     code = main(["src"])
@@ -197,6 +200,35 @@ def test_source_and_text_violations_reported_line_sorted(
         "src/mod.py:1:4: GAC011 no possessive `my` prefix",
         "src/mod.py:2:1: GAC001 no `from __future__ import annotations`",
     ]
+
+
+def test_directive_errors_interleave_with_violations_on_stdout(
+    *,
+    project: Callable[[dict[str, str]], Path],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """An invalid directive is a raw stdout line, sorted among violations (ADR-0011).
+
+    The directive error is on line 1 and the GAC001 violation on line 2, so the
+    two kinds of finding share one location-sorted stream rather than each being
+    flushed as its own block.
+    """
+    project(
+        {
+            "src/mod.py": "x = 1  # garuff: ignore[GAC999]\n"
+            "from __future__ import annotations\n"
+        }
+    )
+
+    code = main(["src"])
+
+    captured = capsys.readouterr()
+    assert code == 1
+    assert captured.out.splitlines() == [
+        "src/mod.py:1:10: invalid garuff directive: unknown code GAC999",
+        "src/mod.py:2:1: GAC001 no `from __future__ import annotations`",
+    ]
+    assert "1 violation, 1 directive error" in captured.err
 
 
 def test_invalid_config_exits_two(

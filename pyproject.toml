@@ -28,12 +28,12 @@ dev = [
 # per-file-ignores feature.
 [tool.garuff.per-file-ignores]
 # GAC011 (possessive `my`) stays active across tests on purpose — tests are a
-# place an agent might be tempted to reach for a `my_` name. Only the two files
-# whose fixtures are deliberately *about* `my` opt out: the possessive rule's
-# own tests, and the CLI sort-order test (which needs a text-scope violation,
-# and GAC011 is the only text rule).
+# place an agent might be tempted to reach for a `my_` name. The possessive
+# rule's own tests are `my`-ridden from top to bottom, so they opt out wholesale
+# here. Everywhere else a fixture needs a `my_` name — the CLI sort-order test,
+# the suppression tests — one inline `# garuff: ignore[GAC011]` on the offending
+# line does it, which dogfoods inline suppression instead of widening this table.
 "tests/rules/code/test_possessive_prefix.py" = ["GAC011"]
-"tests/test_cli.py" = ["GAC011"]
 
 [tool.ruff]
 src = ["src"]
