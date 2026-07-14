@@ -36,4 +36,12 @@ class FutureAnnotationsImport(SourceRule):
 FUTURE_ANNOTATIONS_IMPORT = FutureAnnotationsImport(
     code="GAC001",
     summary="no `from __future__ import annotations`",
+    rationale="""
+        Python 3.14 evaluates annotations lazily (PEP 649), so the import is
+        dead weight — it buys nothing and every module has to carry it.
+    """,
+    fix="""
+        Delete the import:
+            - from __future__ import annotations
+    """,
 )

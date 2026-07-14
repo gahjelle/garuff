@@ -94,6 +94,21 @@ class PositionalArgs(SourceRule):
 
 POSITIONAL_ARGS = PositionalArgs(
     code="GAC008",
-    summary="at most one positional parameter",
+    summary="keep positional parameters to at most $max_positional_args",
+    rationale="""
+        Positional parameters past the first make a call site ambiguous — the
+        reader has to count arguments and match them against the signature to
+        know what each one means.
+    """,
+    fix="""
+        The limit is $max_positional_args; move every parameter past it behind
+        a bare `*` so callers must name them:
+            def build(name, kind, size): ...     # before
+            def build(name, *, kind, size): ...  # after
+        A method's `self`/`cls` does not count. Adding the `*` breaks every
+        call site that passed those arguments positionally, so fix them in the
+        same change:
+            build("a", "b", 1)  ->  build("a", kind="b", size=1)
+    """,
     options=PositionalArgsOptions(),
 )

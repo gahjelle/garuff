@@ -34,6 +34,9 @@ dev = [
 # the suppression tests — one inline `# garuff: ignore[GAC011]` on the offending
 # line does it, which dogfoods inline suppression instead of widening this table.
 "tests/rules/code/test_possessive_prefix.py" = ["GAC011"]
+# The possessive rule has to spell `my_` to explain itself; its own fix text
+# is the one place in src/ where the prefix is the subject, not a lapse.
+"src/garuff/rules/code/possessive_prefix.py" = ["GAC011"]
 
 [tool.ruff]
 src = ["src"]

@@ -43,4 +43,15 @@ class PossessivePrefix(TextRule):
 POSSESSIVE_PREFIX = PossessivePrefix(
     code="GAC011",
     summary="no possessive `my` prefix",
+    rationale="""
+        A name opening with a first-person possessive — `my_config`, `MyClass`,
+        `my-thing` — reads as throwaway example code. Nothing in a codebase is
+        "mine", and examples are the naming other code copies, so the name must
+        describe what the thing *is*.
+    """,
+    fix="""
+        Rename to something descriptive:
+            my_config = load()   # before
+            settings = load()    # after
+    """,
 )

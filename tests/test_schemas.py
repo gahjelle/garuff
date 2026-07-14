@@ -38,7 +38,9 @@ def test_directory_level_location_sorts_before_same_path_with_line() -> None:
 
 def test_violation_detail_overrides_rule_summary_in_render() -> None:
     """A `Violation` with a detail renders that detail, not the rule summary."""
-    rule = Rule(code="GAA001", summary="duplicate ADR numeric prefix")
+    rule = Rule(
+        code="GAA001", summary="duplicate ADR numeric prefix", rationale="", fix=""
+    )
     violation = Violation(
         rule=rule,
         location=Location(path=Path("docs/adr")),
@@ -52,7 +54,12 @@ def test_violation_detail_overrides_rule_summary_in_render() -> None:
 
 def test_violation_without_detail_falls_back_to_rule_summary() -> None:
     """A `Violation` with no detail renders the rule's summary, as before."""
-    rule = Rule(code="GAC001", summary="no `from __future__ import annotations`")
+    rule = Rule(
+        code="GAC001",
+        summary="no `from __future__ import annotations`",
+        rationale="",
+        fix="",
+    )
     violation = Violation(
         rule=rule, location=Location(path=Path("a.py"), line=1, col=1)
     )

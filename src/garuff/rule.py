@@ -6,6 +6,7 @@ adds a `check` for the kind of input it consumes. See ADR-0003.
 
 import abc
 from dataclasses import dataclass
+from inspect import cleandoc
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -18,10 +19,26 @@ if TYPE_CHECKING:
 
 @dataclass(kw_only=True)
 class Rule:
-    """A single convention garuff enforces, identified by a stable code."""
+    """A single convention garuff enforces, identified by a stable code.
+
+    Carries the rule's agent-facing text in three required parts: `summary`
+    (the terse default per-violation line), `rationale` (why the convention
+    exists), and `fix` (the prescribed correct form). All three are
+    `inspect.cleandoc`-normalized in `__post_init__`, so an author writes an
+    indented triple-quoted literal and never imports `cleandoc`. A subclass that
+    adds its own `__post_init__` must call `super().__post_init__()`.
+    """
 
     code: str
     summary: str
+    rationale: str
+    fix: str
+
+    def __post_init__(self) -> None:
+        """Normalize the agent-facing text to print-ready form."""
+        self.summary = cleandoc(self.summary)
+        self.rationale = cleandoc(self.rationale)
+        self.fix = cleandoc(self.fix)
 
 
 @dataclass(kw_only=True)
