@@ -74,7 +74,7 @@ def run(*, paths: list[Path], config: Config, scope: GitScope) -> RunResult:
 
     Rule selection is per file: a rule whose code a matching `per-file-ignores`
     glob silences does not run on that file. Project rules see only global
-    `ignore` (already applied to the resolved registry), never per-file-ignores.
+    `ignore` (already applied to `config.active`), never per-file-ignores.
     `scope` is git's view of the work-tree, forwarded to `gather_files` so the
     run honours git's exclusions.
 
@@ -84,10 +84,10 @@ def run(*, paths: list[Path], config: Config, scope: GitScope) -> RunResult:
     pass, and project rules run outside the loop, so neither is ever suppressed
     inline.
     """
-    registry = config.registry
-    source_rules = [rule for rule in registry.rules if isinstance(rule, SourceRule)]
-    text_rules = [rule for rule in registry.rules if isinstance(rule, TextRule)]
-    project_rules = [rule for rule in registry.rules if isinstance(rule, ProjectRule)]
+    active = config.active
+    source_rules = [rule for rule in active.rules if isinstance(rule, SourceRule)]
+    text_rules = [rule for rule in active.rules if isinstance(rule, TextRule)]
+    project_rules = [rule for rule in active.rules if isinstance(rule, ProjectRule)]
     violations: list[Violation] = []
     parse_failures: list[ParseFailure] = []
     directive_errors: list[DirectiveError] = []
