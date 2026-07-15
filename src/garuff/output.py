@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 # The label gutter: each `why`/`fix`/`note` label is right-aligned in this many
 # columns, then two spaces, then the field's text. Continuation lines align
 # under the text (a `GUTTER + 2`-space hang), preserving an author's own indent.
-GUTTER = 7
+GUTTER = 6
 
 # Every appendix line is indented this far, so a column-0 line stays a finding
 # (ADR-0012). Blocks are separated by one blank line.
