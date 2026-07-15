@@ -23,21 +23,22 @@ dev = [
     "ty>=0.0.56",
 ]
 
+#
+# Garuff - dogfood
+#
 [tool.garuff]
-# garuff dogfoods its own rules; this table is the first real consumer of the
-# per-file-ignores feature.
-[tool.garuff.per-file-ignores]
-# GAC011 (possessive `my`) stays active across tests on purpose — tests are a
-# place an agent might be tempted to reach for a `my_` name. The possessive
-# rule's own tests are `my`-ridden from top to bottom, so they opt out wholesale
-# here. Everywhere else a fixture needs a `my_` name — the CLI sort-order test,
-# the suppression tests — one inline `# garuff: ignore[GAC011]` on the offending
-# line does it, which dogfoods inline suppression instead of widening this table.
-"tests/rules/code/test_possessive_prefix.py" = ["GAC011"]
-# The possessive rule has to spell `my_` to explain itself; its own fix text
-# is the one place in src/ where the prefix is the subject, not a lapse.
-"src/garuff/rules/code/possessive_prefix.py" = ["GAC011"]
 
+[tool.garuff.per-file-ignores]
+# GAC011: possessive `my` (needed for source and tests)
+"src/garuff/rules/code/possessive_prefix.py" = ["GAC011"]
+"tests/rules/code/test_possessive_prefix.py" = ["GAC011"]
+
+[tool.garuff.rules.GAC008]
+max_positional_args = 1
+
+#
+# Ruff - linter
+#
 [tool.ruff]
 src = ["src"]
 
@@ -57,8 +58,14 @@ exempt-modules = ["pathlib", "datetime", "typing"]
 # referenced by a Violation): treat @dataclass annotations as runtime references.
 runtime-evaluated-decorators = ["dataclasses.dataclass"]
 
+#
+# Ty - static type checker
+#
 [tool.ty.src]
 include = ["src", "tests"]
 
+#
+# Pytest - unit test runner
+#
 [tool.pytest.ini_options]
 testpaths = ["tests"]
