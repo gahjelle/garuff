@@ -11,6 +11,17 @@ Work test-first: defer to the `tdd` skill for the red → green → refactor loo
 - A rule's job is to flag the right **violation** at the right location: assert the `CODE` and the `path:line:col` it reports, not the rule's internals.
 - Do not test implementation details; test observable outcomes.
 
+### Exception: pure render geometry
+
+Rendering layout — the exact gutter, alignment, and continuation of an
+explanation block — is a behaviour a user reads, but pinning it through `main()`
+would couple the assertion to a real rule's prose and wrapping. So the one
+sanctioned unit seam is `output.render_*` asserted as an exact string against a
+*fixture* `Explanation` (see `tests/test_output.py`). This covers geometry only;
+*which* rules appear — dedupe, code-sort, ignored-rule notes — is domain
+behaviour and must still be driven through `main()` (`test_appendix.py`,
+`test_rule_command.py`). Do not reach for this seam for anything but layout.
+
 ## Fixture projects under `tmp_path`
 
 garuff runs *inside a target project* — it discovers a root by walking up to the nearest `pyproject.toml`, then lints from there. So tests build a **throwaway project** on disk and point garuff at it:

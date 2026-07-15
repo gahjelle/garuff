@@ -3,31 +3,16 @@
 `render_explanation` lays a rule's explanation out with a right-aligned label in
 a seven-column gutter, two spaces, then the text; continuation lines align under
 the text, and an author's own indentation (a code example inside `fix`) is kept.
-The block is asserted as an exact string against a fixture rule, so the geometry
-is pinned independently of any real rule's prose wrapping.
+The block is asserted as an exact string against a fixture explanation, so the
+geometry is pinned independently of any real rule's prose wrapping — a pure
+render seam the CLI convention explicitly allows (see `docs/agents/testing.md`).
+Which rules appear (dedupe, code-sort, notes) is `explain`'s job and is asserted
+end-to-end in `test_appendix.py` / `test_rule_command.py`, not here.
 """
 
-from pathlib import Path
-
-from garuff.output import render_appendix, render_explanation
-from garuff.rule import Explanation, Rule
-from garuff.rules.code.future_import import FUTURE_ANNOTATIONS_IMPORT
-from garuff.rules.code.positional_args import POSITIONAL_ARGS
-from garuff.schemas import Location, Violation
-
-
-def violation(rule: Rule, *, line: int) -> Violation:
-    """Build a throwaway violation of `rule` at a fixed file, for appendix assembly."""
-    return Violation(rule=rule, location=Location(path=Path("m.py"), line=line, col=1))
-
-
-def header_codes(appendix: str) -> list[str]:
-    """Return the codes appearing as block headers (a `  CODE  ` line), in order."""
-    return [
-        line.split()[0]
-        for line in appendix.splitlines()
-        if line.startswith("  ") and line[2:3].isalpha()
-    ]
+from garuff.explain import ExplainedRule
+from garuff.output import render_appendix, render_explanation, render_explanations
+from garuff.rule import Explanation
 
 
 def fixture_explanation() -> Explanation:
@@ -69,36 +54,27 @@ def test_render_explanation_with_a_note() -> None:
     )
 
 
-def test_appendix_is_empty_without_violations() -> None:
-    """No violations means no appendix — the CLI then writes nothing."""
-    assert render_appendix(violations=[]) == ""
-
-
-def test_appendix_has_one_code_sorted_block_per_distinct_rule() -> None:
-    """Distinct fired rules each get one block, code-sorted regardless of order."""
-    violations = [
-        violation(POSITIONAL_ARGS, line=9),
-        violation(FUTURE_ANNOTATIONS_IMPORT, line=2),
-        violation(POSITIONAL_ARGS, line=5),
+def test_render_explanations_joins_blocks_with_one_blank_line() -> None:
+    """The `rule` render separates each selected block by exactly one blank line."""
+    rules = [
+        ExplainedRule(explanation=fixture_explanation()),
+        ExplainedRule(explanation=fixture_explanation(), note="a note"),
     ]
 
-    appendix = render_appendix(violations=violations)
+    rendered = render_explanations(rules)
 
-    assert header_codes(appendix) == ["GAC001", "GAC008"]
+    assert rendered.count("\n\n") == 1
+    assert rendered.endswith("   note  a note")
 
 
-def test_appendix_dedupes_many_hits_of_one_rule_to_one_block() -> None:
-    """Forty violations of one rule produce exactly one explanation block."""
-    violations = [violation(FUTURE_ANNOTATIONS_IMPORT, line=n) for n in range(40)]
-
-    appendix = render_appendix(violations=violations)
-
-    assert header_codes(appendix) == ["GAC001"]
+def test_appendix_is_empty_without_rules() -> None:
+    """No selected rules means no appendix — the CLI then writes nothing."""
+    assert render_appendix([]) == ""
 
 
 def test_appendix_indents_every_non_blank_line_by_two_spaces() -> None:
     """The layout invariant: no appendix line sits at column 0 unless blank."""
-    appendix = render_appendix(violations=[violation(POSITIONAL_ARGS, line=1)])
+    appendix = render_appendix([ExplainedRule(explanation=fixture_explanation())])
 
     for line in appendix.splitlines():
         assert line == "" or line.startswith("  "), repr(line)

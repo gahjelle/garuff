@@ -20,7 +20,8 @@ garuff follows the structure settled in [`docs/structure-plan.md`](../structure-
 - `suppression.py` — parse `# garuff: ignore[...]` directives; filter violations.
 - `runner.py` — orchestration of the run pipeline.
 - `schemas.py` — the passive result/value types (`Location`, `Violation`, `ParseFailure`, `RunResult`); a low-dependency leaf module. See [ADR-0004](../adr/0004-passive-result-types-live-in-schemas.md).
-- `output.py` — rendering of those types (terse locator lines + explain appendix).
+- `output.py` — rendering of those types (terse locator lines + explain appendix); renders a pre-selected `ExplainedRule`, it never decides which rules appear.
+- `explain.py` — the domain behind `garuff rule` and the Appendix: resolve the catalog/active registries for a directory, select the rule(s) to explain, and attach the ignored-rule note.
 - `rules/code/` (`GAC`) and `rules/agent/` (`GAA`) — the rules themselves.
 
 These modules are created test-first as real work lands; this describes the intended shape, not a scaffold to fill in upfront.

@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from garuff.explain import ExplainedRule
     from garuff.rule import Explanation
     from garuff.schemas import DirectiveError, ParseFailure, Violation
 
@@ -42,21 +43,26 @@ def render_explanation(explanation: Explanation, *, note: str | None = None) -> 
     return "\n".join(lines)
 
 
-def render_appendix(*, violations: list[Violation]) -> str:
-    """Render one block per distinct rule that fired, code-sorted and indented.
+def render_explanations(explained: list[ExplainedRule]) -> str:
+    """Render each already-selected rule as a block, one blank line between them."""
+    return "\n\n".join(
+        render_explanation(rule.explanation, note=rule.note) for rule in explained
+    )
 
-    "Distinct rule that fired" means a rule with at least one reported
-    violation; forty violations of one rule yield one block. Each block is the
-    rule's explanation, indented two spaces so it never occupies column 0
-    (ADR-0012). Returns `""` when there are no violations, so the CLI writes
-    nothing.
+
+def render_appendix(explained: list[ExplainedRule]) -> str:
+    """Render the check Appendix: one indented block per already-selected rule.
+
+    `explained` is the distinct fired rules chosen by `explain.appendix_rules`;
+    each block is indented two spaces so it never occupies column 0 (ADR-0012).
+    Returns `""` for an empty list, so the CLI writes nothing.
     """
-    rules = {violation.rule.code: violation.rule for violation in violations}
-    blocks = [
-        textwrap.indent(render_explanation(rule.explanation), APPENDIX_INDENT)
-        for _, rule in sorted(rules.items())
-    ]
-    return "\n\n".join(blocks)
+    return "\n\n".join(
+        textwrap.indent(
+            render_explanation(rule.explanation, note=rule.note), APPENDIX_INDENT
+        )
+        for rule in explained
+    )
 
 
 def render_findings(

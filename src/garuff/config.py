@@ -15,11 +15,19 @@ from typing import TYPE_CHECKING, Any
 
 from garuff import branding
 from garuff.exceptions import ConfigError, ProjectNotFoundError
-from garuff.files import GitScope, PerFileIgnore, gather_files, relative_posix
+from garuff.files import (
+    GitScope,
+    PerFileIgnore,
+    discover_git_scope,
+    gather_files,
+    relative_posix,
+)
 from garuff.registry import Registry
 from garuff.rule import ProjectRule
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from garuff.rule import Rule
 
 # The only keys the config table may hold; anything else is a config error.
@@ -109,6 +117,23 @@ def load(*, root: Path, registry: Registry, scope: GitScope) -> Config:
         active=active,
         per_file_ignores=per_file_ignores,
     )
+
+
+def resolve(
+    *, start: Path, registry: Registry, warn: Callable[[str], object] | None = None
+) -> tuple[Config, GitScope]:
+    """Discover the project from `start`, load its config, and capture git scope.
+
+    The shared front half of every command that acts on a project: walk up to
+    the root, ask git once for the work-tree scope, then strictly load the
+    config against `registry`. Raises `ProjectNotFoundError` when there is no
+    project and `ConfigError` on an invalid config; each caller translates those
+    into its own exit code.
+    """
+    root = discover_root(start=start)
+    scope = discover_git_scope(root, warn=warn)
+    config = load(root=root, registry=registry, scope=scope)
+    return config, scope
 
 
 def require_known_code(code: str, *, registry: Registry) -> None:

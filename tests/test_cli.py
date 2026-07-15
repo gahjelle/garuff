@@ -291,7 +291,7 @@ def test_bare_garuff_prints_help_and_exits_two(
     captured = capsys.readouterr()
     assert code == 2
     assert "check" in captured.out
-    assert "rule" not in captured.err
+    assert "rule" in captured.out  # the help text lists the `rule` subcommand
 
 
 def test_help_usage_reflects_program_name(
