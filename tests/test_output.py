@@ -31,10 +31,10 @@ def test_render_explanation_without_a_note() -> None:
 
     assert block == (
         "GAX001  a short summary\n"
-        "    why  first line\n"
-        "         second line\n"
-        "    fix  do this:\n"
-        "             example()"
+        "   why  first line\n"
+        "        second line\n"
+        "   fix  do this:\n"
+        "            example()"
     )
 
 
@@ -46,11 +46,11 @@ def test_render_explanation_with_a_note() -> None:
 
     assert block == (
         "GAX001  a short summary\n"
-        "    why  first line\n"
-        "         second line\n"
-        "    fix  do this:\n"
-        "             example()\n"
-        "   note  ignored in this project's configuration"
+        "   why  first line\n"
+        "        second line\n"
+        "   fix  do this:\n"
+        "            example()\n"
+        "  note  ignored in this project's configuration"
     )
 
 
@@ -64,7 +64,7 @@ def test_render_explanations_joins_blocks_with_one_blank_line() -> None:
     rendered = render_explanations(rules)
 
     assert rendered.count("\n\n") == 1
-    assert rendered.endswith("   note  a note")
+    assert rendered.endswith("  note  a note")
 
 
 def test_appendix_is_empty_without_rules() -> None:
