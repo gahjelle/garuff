@@ -19,7 +19,7 @@ def test_own_src_is_clean(
     """Running garuff against its own src/ reports no violations."""
     monkeypatch.chdir(PROJECT_ROOT)
 
-    code = main(["src"])
+    code = main(["check", "src"])
 
     captured = capsys.readouterr()
     assert code == 0, captured.out
@@ -40,7 +40,7 @@ def test_own_whole_root_is_clean(
     """
     monkeypatch.chdir(PROJECT_ROOT)
 
-    code = main([])
+    code = main(["check"])
 
     captured = capsys.readouterr()
     assert code == 0, captured.out

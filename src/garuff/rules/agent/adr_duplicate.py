@@ -35,4 +35,15 @@ class AdrDuplicatePrefix(ProjectRule):
 ADR_DUPLICATE = AdrDuplicatePrefix(
     code="GAA001",
     summary="duplicate ADR numeric prefix",
+    rationale="""
+        An ADR's number is its identity — decisions cite each other by it
+        ("supersedes ADR-0004"). Two files sharing a number make every citation
+        ambiguous.
+    """,
+    fix="""
+        Renumber one of the colliding files to the next free number, keeping the
+        four-digit prefix:
+            docs/adr/0004-a.md
+            docs/adr/0004-b.md  ->  docs/adr/0005-b.md
+    """,
 )

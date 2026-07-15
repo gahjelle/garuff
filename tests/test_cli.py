@@ -25,7 +25,7 @@ def test_clean_project_exits_zero(
     """A project with no violations prints no locators and exits 0."""
     project({"src/mod.py": "x = 1\n"})
 
-    code = main(["src"])
+    code = main(["check", "src"])
 
     captured = capsys.readouterr()
     assert code == 0
@@ -45,7 +45,7 @@ def test_missing_pyproject_exits_two(
     (work / "mod.py").write_text("x = 1\n", encoding="utf-8")
     monkeypatch.chdir(work)
 
-    code = main(["mod.py"])
+    code = main(["check", "mod.py"])
 
     err = capsys.readouterr().err
     assert code == 2
@@ -60,7 +60,7 @@ def test_explicit_missing_path_exits_two(
     """An explicitly-named path that does not exist is an error (exit 2)."""
     project({"src/mod.py": "x = 1\n"})
 
-    code = main(["does_not_exist"])
+    code = main(["check", "does_not_exist"])
 
     err = capsys.readouterr().err
     assert code == 2
@@ -72,7 +72,7 @@ def test_default_lints_root_without_a_tests_dir(
     project: Callable[[dict[str, str]], Path],
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    """Bare `garuff` lints the root even when the project has no tests/ dir.
+    """`garuff check` with no paths lints the root even with no tests/ dir.
 
     The default is the project root (which always exists), so a project with
     only `src/` still lints cleanly — no "does not exist" error for a path
@@ -80,7 +80,7 @@ def test_default_lints_root_without_a_tests_dir(
     """
     project({"src/mod.py": "from __future__ import annotations\n"})
 
-    code = main([])
+    code = main(["check"])
 
     captured = capsys.readouterr()
     assert code == 1
@@ -107,7 +107,7 @@ def test_defaults_lint_whole_root_including_docs(
         }
     )
 
-    code = main([])
+    code = main(["check"])
 
     captured = capsys.readouterr()
     assert code == 1
@@ -128,7 +128,7 @@ def test_unparsable_file_is_reported_and_skipped(
         }
     )
 
-    code = main(["src"])
+    code = main(["check", "src"])
 
     captured = capsys.readouterr()
     assert code == 1
@@ -146,7 +146,7 @@ def test_prints_summary_to_stderr(
     """A summary line goes to stderr, leaving stdout for locator lines only."""
     project({"src/mod.py": "from __future__ import annotations\n"})
 
-    main(["src"])
+    main(["check", "src"])
 
     captured = capsys.readouterr()
     assert "1 .py file" in captured.err
@@ -168,7 +168,7 @@ def test_summary_splits_counts_by_extension(
         }
     )
 
-    code = main(["src", "docs"])
+    code = main(["check", "src", "docs"])
 
     captured = capsys.readouterr()
     assert code == 0
@@ -192,11 +192,14 @@ def test_source_and_text_violations_reported_line_sorted(
     )
     project({"src/mod.py": source})
 
-    code = main(["src"])
+    code = main(["check", "src"])
 
-    lines = capsys.readouterr().out.splitlines()
+    out = capsys.readouterr().out
+    finding_lines = [
+        line for line in out.splitlines() if line and not line.startswith(" ")
+    ]
     assert code == 1
-    assert lines == [
+    assert finding_lines == [
         "src/mod.py:1:4: GAC011 no possessive `my` prefix",
         "src/mod.py:2:1: GAC001 no `from __future__ import annotations`",
     ]
@@ -220,11 +223,14 @@ def test_directive_errors_interleave_with_violations_on_stdout(
         }
     )
 
-    code = main(["src"])
+    code = main(["check", "src"])
 
     captured = capsys.readouterr()
+    finding_lines = [
+        line for line in captured.out.splitlines() if line and not line.startswith(" ")
+    ]
     assert code == 1
-    assert captured.out.splitlines() == [
+    assert finding_lines == [
         "src/mod.py:1:10: invalid garuff directive: unknown code GAC999",
         "src/mod.py:2:1: GAC001 no `from __future__ import annotations`",
     ]
@@ -245,7 +251,7 @@ def test_invalid_config_exits_two(
         }
     )
 
-    code = main(["src"])
+    code = main(["check", "src"])
 
     captured = capsys.readouterr()
     assert code == 2
@@ -266,13 +272,26 @@ def test_non_git_tree_warns_exactly_once_and_still_lints(
         }
     )
 
-    code = main(["."])
+    code = main(["check", "."])
 
     captured = capsys.readouterr()
     assert code == 1
     assert captured.err.count("not a git repository") == 1
     assert "src/mod.py:1:1: GAC001" in captured.out
     assert ".venv" not in captured.out  # Layer 1 still prunes the virtualenv
+
+
+def test_bare_garuff_prints_help_and_exits_two(
+    *,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """No subcommand prints help on stdout and exits 2, like bare `ruff` (ADR-0013)."""
+    code = main([])
+
+    captured = capsys.readouterr()
+    assert code == 2
+    assert "check" in captured.out
+    assert "rule" in captured.out  # the help text lists the `rule` subcommand
 
 
 def test_help_usage_reflects_program_name(

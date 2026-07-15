@@ -1,5 +1,6 @@
 """The Registry — the central collection of all known rules, looked up by code."""
 
+import difflib
 from dataclasses import dataclass, field
 
 from garuff.exceptions import DuplicateRuleCodeError, UnknownRuleCodeError
@@ -30,3 +31,8 @@ class Registry:
         except KeyError:
             message = f"unknown rule code: {code}"
             raise UnknownRuleCodeError(message) from None
+
+    def suggest(self, code: str) -> str | None:
+        """Return the known code most like this one, or None if none is close."""
+        matches = difflib.get_close_matches(code, self.by_code, n=1)
+        return matches[0] if matches else None

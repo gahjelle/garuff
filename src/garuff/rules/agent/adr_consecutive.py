@@ -35,4 +35,15 @@ class AdrConsecutiveNumbers(ProjectRule):
 ADR_CONSECUTIVE = AdrConsecutiveNumbers(
     code="GAA002",
     summary="ADR numbers must be a gapless run from 0001",
+    rationale="""
+        A gap means either a decision was deleted — and the record now lies
+        about its own history — or the next number was guessed wrong.
+        Contiguous numbering makes "what is the next number?" answerable by
+        counting.
+    """,
+    fix="""
+        Renumber so the directory runs 0001..N with no holes:
+            0001, 0002, 0004  ->  0001, 0002, 0003
+        An obsolete ADR is marked superseded, never deleted.
+    """,
 )

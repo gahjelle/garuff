@@ -28,7 +28,7 @@ def test_round_trip_parses_real_output(
     run = lint(["src"])
 
     assert run.exit_code == 1
-    assert run.stdout == (
+    assert run.stdout.startswith(
         "src/mod.py:1:1: GAC001 no `from __future__ import annotations`\n"
     )
     (violation,) = run.violations
@@ -37,6 +37,8 @@ def test_round_trip_parses_real_output(
     assert violation.col == 1
     assert violation.code == "GAC001"
     assert violation.message == "no `from __future__ import annotations`"
+    # The appendix follows the locator line but never leaks into the findings.
+    assert run.codes_explained == ["GAC001"]
 
 
 def test_round_trip_parses_a_real_directive_error(

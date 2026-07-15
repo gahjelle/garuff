@@ -3,9 +3,9 @@
 `discover_root` locates the project by walking up to a `pyproject.toml`.
 `load` is the single validation authority: it reads the `branding.CONFIG_TABLE`
 table, strictly validates it (the only site that raises `ConfigError`), and
-returns a resolved `Config` the runner can consume without touching raw config —
-globally ignored rules already removed, options already baked. See ADR-0007,
-ADR-0008.
+returns a resolved `Config` the runner can consume without touching raw config:
+a full catalog with options baked, plus the `active` subset with globally
+ignored rules removed. See ADR-0007, ADR-0008.
 """
 
 import tomllib
@@ -15,11 +15,19 @@ from typing import TYPE_CHECKING, Any
 
 from garuff import branding
 from garuff.exceptions import ConfigError, ProjectNotFoundError
-from garuff.files import GitScope, PerFileIgnore, gather_files, relative_posix
+from garuff.files import (
+    GitScope,
+    PerFileIgnore,
+    discover_git_scope,
+    gather_files,
+    relative_posix,
+)
 from garuff.registry import Registry
 from garuff.rule import ProjectRule
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from garuff.rule import Rule
 
 # The only keys the config table may hold; anything else is a config error.
@@ -30,19 +38,27 @@ TOP_LEVEL_KEYS = frozenset({"ignore", "per-file-ignores", "rules"})
 class Config:
     """A resolved, validated configuration: the levers the runner acts on.
 
-    `registry` is the resolved registry (globally-ignored rules removed, options
-    baked). `per_file_ignores` is the suppression entries, each matched per file
-    when the runner selects which rules to run. `root` is the project root those
-    globs are anchored to (POSIX, root-relative). `known_codes` is every code the
-    *full* registry knows, pre-`ignore`: the authority an inline directive's codes
-    are validated against, so a globally-ignored — but real — code reads as a
-    silent no-op rather than an unknown code.
+    `registry` is the full catalog — every known rule, options baked, including
+    the globally-ignored ones, which stay in the catalog because they are still
+    explainable (`garuff rule <CODE>`). `active` drops the globally-ignored
+    rules; it is what the runner runs. `per_file_ignores` is the suppression
+    entries, each matched per file when the runner selects which rules to run.
+    `root` is the project root those globs are anchored to (POSIX,
+    root-relative). `known_codes` derives from the catalog: every code the full
+    registry knows is the authority an inline directive's codes are validated
+    against, so a globally-ignored — but real — code reads as a silent no-op
+    rather than an unknown code.
     """
 
     root: Path
     registry: Registry
+    active: Registry
     per_file_ignores: list[PerFileIgnore]
-    known_codes: frozenset[str]
+
+    @property
+    def known_codes(self) -> frozenset[str]:
+        """Every code the catalog knows — what a directive's codes validate against."""
+        return frozenset(self.registry.by_code)
 
 
 def discover_root(*, start: Path) -> Path:
@@ -76,7 +92,7 @@ def load(*, root: Path, registry: Registry, scope: GitScope) -> Config:
         require_known_code(code, registry=registry)
 
     baked_options = resolve_options(table.get("rules", {}), registry=registry)
-    resolved = Registry(
+    catalog = Registry(
         rules=[
             (
                 replace(rule, options=baked_options[rule.code])
@@ -84,9 +100,9 @@ def load(*, root: Path, registry: Registry, scope: GitScope) -> Config:
                 else rule
             )
             for rule in registry.rules
-            if rule.code not in ignore
         ]
     )
+    active = Registry(rules=[rule for rule in catalog.rules if rule.code not in ignore])
 
     per_file_ignores: list[PerFileIgnore] = []
     for glob, codes in table.get("per-file-ignores", {}).items():
@@ -97,10 +113,27 @@ def load(*, root: Path, registry: Registry, scope: GitScope) -> Config:
 
     return Config(
         root=root,
-        registry=resolved,
+        registry=catalog,
+        active=active,
         per_file_ignores=per_file_ignores,
-        known_codes=frozenset(registry.by_code),
     )
+
+
+def resolve(
+    *, start: Path, registry: Registry, warn: Callable[[str], object] | None = None
+) -> tuple[Config, GitScope]:
+    """Discover the project from `start`, load its config, and capture git scope.
+
+    The shared front half of every command that acts on a project: walk up to
+    the root, ask git once for the work-tree scope, then strictly load the
+    config against `registry`. Raises `ProjectNotFoundError` when there is no
+    project and `ConfigError` on an invalid config; each caller translates those
+    into its own exit code.
+    """
+    root = discover_root(start=start)
+    scope = discover_git_scope(root, warn=warn)
+    config = load(root=root, registry=registry, scope=scope)
+    return config, scope
 
 
 def require_known_code(code: str, *, registry: Registry) -> None:

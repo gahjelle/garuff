@@ -3,13 +3,16 @@
 garuff renders each violation as a locator line — `path:line:col: CODE text`
 for source/text scope, `path/: CODE text` for project scope — and each invalid
 inline directive as `path:line:col: invalid garuff directive: text` (ADR-0011),
-interleaved in the same stream. Rule tests want to assert on those *as data*
-(which code, at which location) rather than by substring. `parse` inverts
-`output.py`'s render, sorting directive errors out from violations so `codes`
-and `at` stay clean; `LintRun` bundles it with the run's exit code and raw
-streams. This parser is coupled to `output.py`'s format; `tests/test_cli.py`'s
-raw-line test and `tests/test_lintrun.py`'s round-trip guard against silent
-drift between the two.
+interleaved in the same stream. The explanation appendix follows, indented two
+spaces so a column-0 line is always a finding (ADR-0012): `parse` reads that
+invariant literally, skipping any line that is blank or starts with a space, so
+only findings reach `violations`/`directive_errors`. Rule tests want to assert
+on those *as data* (which code, at which location) rather than by substring.
+`parse` inverts `output.py`'s render, sorting directive errors out from
+violations so `codes` and `at` stay clean; `LintRun` bundles them with the run's
+exit code, raw streams, and the indented appendix tail. This parser is coupled
+to `output.py`'s format; `tests/test_cli.py`'s raw-line test and
+`tests/test_lintrun.py`'s round-trip guard against silent drift between the two.
 """
 
 from dataclasses import dataclass, field
@@ -50,10 +53,14 @@ class ParsedFindings:
 
 
 def parse(stdout: str) -> ParsedFindings:
-    """Turn garuff's stdout into parsed violations and directive errors."""
+    """Turn garuff's stdout into parsed violations and directive errors.
+
+    Only column-0 lines are findings (ADR-0012); a blank line or one that starts
+    with a space belongs to the appendix and is skipped.
+    """
     findings = ParsedFindings()
     for text in stdout.splitlines():
-        if not text:
+        if not text or text.startswith(" "):
             continue
         locator, _, rest = text.partition(": ")
         if locator.endswith("/"):
@@ -82,24 +89,40 @@ def parse(stdout: str) -> ParsedFindings:
 
 @dataclass(kw_only=True)
 class LintRun:
-    """The outcome of a run: its exit code, raw streams, and parsed findings."""
+    """The outcome of a run: exit code, raw streams, findings, and the appendix."""
 
     exit_code: int
     stdout: str
     stderr: str
     violations: list[ParsedViolation] = field(init=False)
     directive_errors: list[ParsedDirectiveError] = field(init=False)
+    appendix: str = field(init=False)
 
     def __post_init__(self) -> None:
-        """Derive the parsed findings from stdout."""
+        """Derive the parsed findings and the appendix tail from stdout.
+
+        stdout is the findings block, then — if any rule fired — a blank line
+        and the indented appendix. Splitting on the first blank line separates
+        them, so appendix tests assert on the tail as data, not by substring.
+        """
         findings = parse(self.stdout)
         self.violations = findings.violations
         self.directive_errors = findings.directive_errors
+        _, _, self.appendix = self.stdout.partition("\n\n")
 
     @property
     def codes(self) -> list[str]:
         """Every violation's code, in reported order."""
         return [violation.code for violation in self.violations]
+
+    @property
+    def codes_explained(self) -> list[str]:
+        """The rule codes appearing as appendix block headers, in printed order."""
+        return [
+            line.split()[0]
+            for line in self.appendix.splitlines()
+            if line.startswith("  ") and not line[2:3].isspace()
+        ]
 
     def at(
         self, path: str, *, line: int | None = None, col: int | None = None
