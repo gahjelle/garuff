@@ -96,13 +96,13 @@ POSITIONAL_ARGS = PositionalArgs(
     code="GAC008",
     summary="keep positional parameters to at most $max_positional_args",
     rationale="""
-        Positional parameters past the first make a call site ambiguous — the
-        reader has to count arguments and match them against the signature to
-        know what each one means.
+        Too many positional parameters make a call site ambiguous — the reader
+        has to count arguments and match them against the signature to know what
+        each one means.
     """,
     fix="""
-        The limit is $max_positional_args; move every parameter past it behind
-        a bare `*` so callers must name them:
+        The limit is $max_positional_args; move every parameter past it behind a bare
+        `*` so callers must name them:
             def build(name, kind, size): ...     # before
             def build(name, *, kind, size): ...  # after
         A method's `self`/`cls` does not count. Adding the `*` breaks every
