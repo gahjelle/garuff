@@ -2,10 +2,13 @@
 
 garuff's passive, widely-depended-on data types — `Location`, `Violation`,
 `ParseFailure`, and the `RunResult` aggregate — live together in a single leaf
-module, `schemas.py`. It imports nothing from the rest of garuff except the
-`Rule` type (for `Violation.rule`), so everything else can depend on it without
-risking an import cycle. The behaviour-carrying `Rule` hierarchy is deliberately
-kept out (see below).
+module, `schemas.py`. Structural `Protocol` definitions that type the inputs to
+these data types (e.g. `Positioned`, the input contract for `Location.from_node`)
+also live here, so `schemas.py` stays free of `ast` or other heavy imports while
+the Protocols keep the dependency direction clean. `schemas.py` imports nothing
+from the rest of garuff except the `Rule` type (for `Violation.rule`), so
+everything else can depend on it without risking an import cycle. The
+behaviour-carrying `Rule` hierarchy is deliberately kept out (see below).
 
 ## Considered options
 
@@ -23,9 +26,9 @@ kept out (see below).
   non-breaking move if that day comes, so nothing is lost by starting with a
   file.
 - **A single `schemas.py` file (chosen).** One low-dependency module for the
-  located, renderable results of a run; the rename from `violation.py` reflects
-  that it was already a "located outcomes" module in spirit (it owned
-  `Location`).
+  located, renderable results of a run, plus the structural Protocols that type
+  their inputs; the rename from `violation.py` reflects that it was already a
+  "located outcomes" module in spirit (it owned `Location`).
 
 ## Consequences
 
@@ -33,8 +36,16 @@ kept out (see below).
   schema-shaped (few dependencies, many dependents) but is the opposite of
   passive data: per [ADR-0003](0003-rules-are-a-nominal-dataclass-hierarchy.md)
   it carries checks, and will grow fixers, config validation, and explanation
-  rendering. Only inert result/value types belong in `schemas.py`; anything with
-  behaviour does not. This boundary is the load-bearing part of the decision — a
-  future contributor should not "tidy" `Rule` into `schemas.py`.
+  rendering. Only inert result/value types and structural input Protocols belong
+  in `schemas.py`; anything with behaviour does not. This boundary is the
+  load-bearing part of the decision — a future contributor should not "tidy"
+  `Rule` into `schemas.py`.
+- **Structural Protocols are input-side contracts, not behaviour.** A `Protocol`
+  like `Positioned` (exposing `lineno`/`col_offset`) exists so that
+  `schemas.py` can type a factory method's input without importing `ast` — it
+  preserves the leaf-module property. Protocols are welcome in `schemas.py`
+  exactly when they type an input to a data type or factory already housed
+  there. A Protocol that carries behaviour (default methods, `@abstractmethod`)
+  does not belong here.
 - `runner.py` is reduced to orchestration that *produces* these types rather
   than *defining* them.
