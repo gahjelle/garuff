@@ -18,12 +18,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from garuff.rule import SourceRule
+from garuff.rules.code.syntax import Function, functions
 from garuff.schemas import Location, Violation
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
-
-type Function = ast.FunctionDef | ast.AsyncFunctionDef
 
 
 @dataclass(kw_only=True)
@@ -31,23 +30,6 @@ class PositionalArgsOptions:
     """Options for GAC008: the maximum positional parameters a function may take."""
 
     max_positional_args: int = 1
-
-
-def iter_functions(node: ast.AST, *, in_class: bool) -> Iterator[tuple[Function, bool]]:
-    """Yield every function under node, paired with whether it is a class method.
-
-    A function is a method when its immediate container is a `ClassDef`; a
-    function nested inside another function is not, so descending through a
-    function body resets the flag.
-    """
-    for child in ast.iter_child_nodes(node):
-        if isinstance(child, ast.FunctionDef | ast.AsyncFunctionDef):
-            yield child, in_class
-            yield from iter_functions(child, in_class=False)
-        elif isinstance(child, ast.ClassDef):
-            yield from iter_functions(child, in_class=True)
-        else:
-            yield from iter_functions(child, in_class=in_class)
 
 
 def is_staticmethod(function: Function) -> bool:
@@ -75,16 +57,12 @@ class PositionalArgs(SourceRule):
     def check(self, module: ast.Module, *, path: Path) -> Iterator[Violation]:
         """Yield a violation for each function over the positional-arg ceiling."""
         limit = self.options.max_positional_args
-        for function, is_method in iter_functions(module, in_class=False):
+        for function, is_method in functions(module):
             count = positional_count(function, is_method=is_method)
             if count > limit:
                 yield Violation(
                     rule=self,
-                    location=Location(
-                        path=path,
-                        line=function.lineno,
-                        col=function.col_offset + 1,
-                    ),
+                    location=Location.from_node(function, path=path),
                     detail=(
                         f"`{function.name}` takes {count} positional parameters "
                         f"(at most {limit})"
