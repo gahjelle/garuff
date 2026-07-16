@@ -18,9 +18,10 @@ if TYPE_CHECKING:
 
     from tests.lintrun import LintRun
 
-# Two over-limit functions: GAC008 fires on each `def` line (1 and 5).
+# Two over-limit functions: GAC008 fires on each `def` line (1 and 5). Both carry
+# a docstring so only GAC008 — not GAC010 — bites at those lines.
 TWO_WIDE_FUNCTIONS = (
-    "def wide(a, b):\n    return a + b\n\n\ndef also_wide(a, b):\n    return a + b\n"
+    'def wide(a, b):\n    """Wide."""\n\n\ndef also_wide(a, b):\n    """Also wide."""\n'
 )
 
 
@@ -175,7 +176,13 @@ def test_marker_inside_a_string_literal_does_not_suppress(
     lint: Callable[[list[str]], LintRun],
 ) -> None:
     """Only COMMENT tokens carry directives — a marker in a string is inert text."""
-    project({"mod.py": 'def wide(a, b): return "# garuff: ignore[GAC008]"\n'})
+    project(
+        {
+            "mod.py": (
+                'def wide(a, b):\n    """D."""\n    return "# garuff: ignore[GAC008]"\n'
+            )
+        }
+    )
 
     run = lint(["mod.py"])
 

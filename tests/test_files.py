@@ -207,6 +207,7 @@ def test_git_lintable_none_when_subprocess_fails(
     monkeypatch.setattr("garuff.files.shutil.which", lambda _: "/usr/bin/git")
 
     def boom(*_args: object, **_kwargs: object) -> None:
+        """Stand in for `subprocess.run`, raising the parametrized failure."""
         raise error
 
     monkeypatch.setattr("garuff.files.subprocess.run", boom)

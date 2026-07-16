@@ -31,7 +31,7 @@ def test_three_distinct_rules_each_get_one_code_sorted_block(
     project(
         {
             "src/future.py": "from __future__ import annotations\n",  # GAC001
-            "src/wide.py": "def f(a, b):\n    return a\n",  # GAC008
+            "src/wide.py": 'def f(a, b):\n    """Doc."""\n    return a\n',  # GAC008
             "docs/adr/0002-gap.md": "# A decision with no 0001\n",  # GAA002
         }
     )
@@ -115,7 +115,7 @@ def test_configured_option_shows_in_the_appendix_header(
             "pyproject.toml": pyproject(
                 "[tool.garuff.rules.GAC008]\nmax-positional-args = 3\n"
             ),
-            "src/four.py": "def g(a, b, c, d):\n    return a\n",
+            "src/four.py": 'def g(a, b, c, d):\n    """Doc."""\n    return a\n',
         }
     )
 
