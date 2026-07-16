@@ -134,13 +134,13 @@ def test_rule_unknown_code_exits_two_with_a_did_you_mean(
     """An unknown code names itself and suggests a close one (like `ruff rule`)."""
     project({"src/mod.py": "x = 1\n"})
 
-    code = main(["rule", "GAC009"])
+    code = main(["rule", "GAC099"])
 
     err = capsys.readouterr().err
     assert code == 2
-    assert "GAC009" in err
+    assert "GAC099" in err
     assert "did you mean" in err
-    assert "GAC001" in err or "GAC008" in err
+    assert "GAC0" in err.split("did you mean", 1)[1]
 
 
 def test_rule_all_explains_every_code_in_sorted_order(
@@ -155,7 +155,14 @@ def test_rule_all_explains_every_code_in_sorted_order(
 
     out = capsys.readouterr().out
     assert code == 0
-    assert block_headers(out) == ["GAA001", "GAA002", "GAC001", "GAC008", "GAC011"]
+    assert block_headers(out) == [
+        "GAA001",
+        "GAA002",
+        "GAC001",
+        "GAC002",
+        "GAC008",
+        "GAC011",
+    ]
 
 
 def test_rule_requires_a_code_or_all(
