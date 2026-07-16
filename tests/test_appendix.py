@@ -6,13 +6,13 @@ wiring — dedupe, code-sort, the option-baked header, and the column-0 layout
 invariant — is exercised the way a user sees it, not just at the render seam.
 """
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from tests.test_config import pyproject
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
     from tests.lintrun import LintRun
 

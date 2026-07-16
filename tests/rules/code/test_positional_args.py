@@ -7,6 +7,7 @@ is a `@staticmethod`. Lambdas are not checked. These cases run end-to-end throug
 a `.py` file so registration and the default option (max 1) are exercised too.
 """
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -15,7 +16,6 @@ from garuff import branding
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
     from tests.lintrun import LintRun
 

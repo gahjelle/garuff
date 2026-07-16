@@ -164,6 +164,7 @@ def test_rule_all_explains_every_code_in_sorted_order(
         "GAC004",
         "GAC005",
         "GAC006",
+        "GAC007",
         "GAC008",
         "GAC009",
         "GAC010",

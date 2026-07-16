@@ -8,6 +8,7 @@ prints what these return and holds no selection logic; `output` renders an
 """
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from garuff.config import resolve
@@ -16,7 +17,6 @@ from garuff.rule import Explanation
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
     from garuff.registry import Registry
     from garuff.schemas import Violation

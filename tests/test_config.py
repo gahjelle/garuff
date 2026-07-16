@@ -8,13 +8,13 @@ config aborts with exit 2 and names the offending key or code, while a valid
 appear. Fixtures are throwaway projects under `tmp_path` (see conftest).
 """
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from garuff import branding
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
     from tests.lintrun import LintRun
 

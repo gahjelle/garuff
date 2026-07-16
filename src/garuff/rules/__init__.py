@@ -13,6 +13,7 @@ from garuff.rules.code.positional_args import POSITIONAL_ARGS
 from garuff.rules.code.possessive_prefix import POSSESSIVE_PREFIX
 from garuff.rules.code.redundant_ellipsis import REDUNDANT_ELLIPSIS
 from garuff.rules.code.self_return import SELF_RETURN
+from garuff.rules.code.type_checking_exempt import TYPE_CHECKING_EXEMPT
 
 REGISTRY = Registry(
     rules=[
@@ -28,6 +29,7 @@ REGISTRY = Registry(
         POSSESSIVE_PREFIX,
         REDUNDANT_ELLIPSIS,
         SELF_RETURN,
+        TYPE_CHECKING_EXEMPT,
     ]
 )
 

@@ -6,6 +6,7 @@ assert on what a user sees: which violations survive, which directive errors are
 reported, and the exit code. See ADR-0001, ADR-0011, CONTEXT.md (**Directive**).
 """
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -14,7 +15,6 @@ from garuff import branding
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
     from tests.lintrun import LintRun
 

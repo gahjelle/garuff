@@ -5,13 +5,13 @@ file outside the glob still trips them. These cases drive `main()` over a
 throwaway project and assert on the violations a user sees, file by file.
 """
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from garuff import branding
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
     from tests.lintrun import LintRun
 

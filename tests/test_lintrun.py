@@ -6,13 +6,13 @@ cover shapes a single real violation won't produce (project scope, `: ` inside a
 message, empty run).
 """
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from tests.lintrun import parse
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
     from tests.lintrun import LintRun
 

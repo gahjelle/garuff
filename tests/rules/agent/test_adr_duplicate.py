@@ -1,10 +1,10 @@
 """GAA001 duplicate ADR number: the check for a repeated numeric prefix."""
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
     from tests.lintrun import LintRun
 

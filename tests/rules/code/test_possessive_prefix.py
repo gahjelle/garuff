@@ -5,13 +5,13 @@ no Python parse-validity concern; two end-to-end cases confirm the rule fires in
 both a `.py` source and a Markdown file.
 """
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
     from tests.lintrun import LintRun
 

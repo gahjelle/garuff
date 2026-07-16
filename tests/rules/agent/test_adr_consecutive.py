@@ -1,10 +1,10 @@
 """GAA002 consecutive ADR numbers: the check for a gapless run from 0001."""
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
     from tests.lintrun import LintRun
 
