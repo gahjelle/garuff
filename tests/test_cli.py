@@ -307,6 +307,10 @@ def test_quiet_clean_run_is_silent(
     so outside a work-tree even a clean run legitimately prints it.
     """
     root = project({"src/mod.py": "x = 1\n"})
+    # The fixture chdirs into `root`, so garuff discovers *this* project — git
+    # init it there so the discovered work-tree is the temp project. Without a
+    # work-tree even a clean run prints the git-scope diagnostic (asserted in
+    # test_quiet_keeps_git_scope_warning), so this line is what buys the silence.
     subprocess.run(["git", "init", "-q", str(root)], check=True)
 
     code = main(["check", "-q", "src"])
