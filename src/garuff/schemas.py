@@ -8,7 +8,7 @@ hierarchy deliberately lives elsewhere (`rule.py`); see ADR-0004.
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Self
+from typing import Protocol, Self
 
 from garuff import branding
 from garuff.rule import Rule
@@ -20,6 +20,19 @@ def display_path(path: Path, *, root: Path) -> str:
         return str(path.relative_to(root))
     except ValueError:
         return str(path)
+
+
+class Positioned(Protocol):
+    """A source node exposing a start position — an AST node's `lineno`/`col_offset`.
+
+    The input side of `Location.from_node`: ast-native, 0-based column, no path.
+    Distinct from `Location`, the garuff-owned output (1-based, path-bearing,
+    renderable). Structural, so every positioned `ast` node satisfies it without
+    importing `ast` into this leaf module (ADR-0004).
+    """
+
+    lineno: int
+    col_offset: int
 
 
 @dataclass(kw_only=True)
@@ -36,6 +49,11 @@ class Location:
         line = text.count("\n", 0, offset) + 1
         col = offset - text.rfind("\n", 0, offset)
         return cls(path=path, line=line, col=col)
+
+    @classmethod
+    def from_node(cls, node: Positioned, *, path: Path) -> Self:
+        """Locate an AST node at its 1-based start position as a Location."""
+        return cls(path=path, line=node.lineno, col=node.col_offset + 1)
 
     @property
     def sort_key(self) -> tuple[str, int, int]:

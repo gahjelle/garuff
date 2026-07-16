@@ -90,6 +90,28 @@ def test_locates_at_the_def_line(
     assert run.at("src/mod.py", line=1, col=1) == ["GAC008"]
 
 
+def test_locates_nested_def_at_its_indented_column(
+    *,
+    project: Callable[[dict[str, str]], Path],
+    lint: Callable[[list[str]], LintRun],
+) -> None:
+    """A nested function's GAC008 locates at the indented `def` — column included."""
+    project(
+        {
+            "src/mod.py": (
+                "def outer(a):\n"
+                "    def inner(x, y):\n"
+                "        return x\n"
+                "    return inner\n"
+            )
+        }
+    )
+
+    run = lint(["src"])
+
+    assert run.at("src/mod.py", line=2, col=5) == ["GAC008"]
+
+
 def test_max_positional_args_option_raises_the_ceiling(
     *,
     project: Callable[[dict[str, str]], Path],

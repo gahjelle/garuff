@@ -27,9 +27,7 @@ class FutureAnnotationsImport(SourceRule):
             ):
                 yield Violation(
                     rule=self,
-                    location=Location(
-                        path=path, line=node.lineno, col=node.col_offset + 1
-                    ),
+                    location=Location.from_node(node, path=path),
                 )
 
 
