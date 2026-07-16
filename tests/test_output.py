@@ -11,8 +11,23 @@ end-to-end in `test_appendix.py` / `test_rule_command.py`, not here.
 """
 
 from garuff.explain import ExplainedRule
-from garuff.output import render_appendix, render_explanation, render_explanations
+from garuff.output import (
+    Verbosity,
+    render_appendix,
+    render_explanation,
+    render_explanations,
+)
 from garuff.rule import Explanation
+
+
+def test_verbosity_quiet_ranks_below_default() -> None:
+    """The scale is ordered low-to-high, so quiet compares less than default.
+
+    Output gates read as thresholds (`verbosity >= Verbosity.DEFAULT`); this
+    ordering is what makes reserving `SILENT` below and `VERBOSE` above a
+    non-breaking extension (ADR-0016, #42).
+    """
+    assert Verbosity.QUIET < Verbosity.DEFAULT
 
 
 def fixture_explanation() -> Explanation:

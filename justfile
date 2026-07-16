@@ -17,7 +17,7 @@ typecheck:
 
 # Lint garuff's whole project root with garuff (the default scope).
 dogfood:
-    uv run garuff check
+    uv run garuff check -q
 
 # Run the test suite quietly.
 test *args:

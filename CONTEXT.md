@@ -105,6 +105,14 @@ suppress per file, and each rule's options. Strictly validated — an unknown ke
 unknown code, wrong option type, or dead glob is an error, not a warning.
 _Avoid_: Settings, preferences, options (as the whole)
 
+**Verbosity**:
+How much of garuff's *own* output a run prints — a property of the invocation,
+set by CLI flag, never by Configuration. An ordered scale; `-q`/`--quiet` drops
+the run **summary** only, leaving every finding and diagnostic in place.
+Orthogonal to Ignore and Suppression: those remove *findings*; verbosity only
+turns down garuff's *status chatter*. Never hides a Violation.
+_Avoid_: Quiet/silent as synonyms for ignoring or suppressing a rule.
+
 **Rule option**:
 A named, typed knob a rule exposes for tuning its behaviour, carrying a default
 (e.g. GAC008's `max-positional-args`, default 1). Set per project under the
