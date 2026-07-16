@@ -8,18 +8,18 @@ config aborts with exit 2 and names the offending key or code, while a valid
 appear. Fixtures are throwaway projects under `tmp_path` (see conftest).
 """
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from garuff import branding
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
     from tests.lintrun import LintRun
 
 FUTURE_IMPORT = "from __future__ import annotations\n"  # trips GAC001
-TWO_POSITIONAL = "def f(a, b):\n    return a\n"  # trips GAC008
+TWO_POSITIONAL = 'def f(a, b):\n    """Doc."""\n    return a\n'  # trips GAC008
 
 
 def pyproject(body: str) -> str:
@@ -268,8 +268,8 @@ def test_option_override_changes_what_is_flagged(
             "pyproject.toml": pyproject(
                 f"[{branding.CONFIG_TABLE}.rules.GAC008]\nmax-positional-args = 3\n"
             ),
-            "src/three.py": "def f(a, b, c):\n    return a\n",
-            "src/four.py": "def g(a, b, c, d):\n    return a\n",
+            "src/three.py": 'def f(a, b, c):\n    """Doc."""\n    return a\n',
+            "src/four.py": 'def g(a, b, c, d):\n    """Doc."""\n    return a\n',
         }
     )
 

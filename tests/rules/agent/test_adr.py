@@ -5,11 +5,11 @@ Tests that span both GAA rules or exercise the shared `adr.py` seam
 own unique behaviour lives in `test_adr_duplicate.py` / `test_adr_consecutive.py`.
 """
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
     from tests.lintrun import LintRun
 

@@ -190,6 +190,11 @@ def resolve_options(
                     f"got {type(value).__name__}"
                 )
                 raise ConfigError(message)
+            if isinstance(value, list) and not all(
+                isinstance(element, str) for element in value
+            ):
+                message = f"option {key} for {code} must be a list of strings"
+                raise ConfigError(message)
             values[name] = value
         baked[code] = replace(current, **values)
     return baked

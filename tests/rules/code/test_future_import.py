@@ -1,10 +1,10 @@
 """GAC001 no `from __future__ import annotations`: the source-scope check."""
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
     from tests.lintrun import LintRun
 

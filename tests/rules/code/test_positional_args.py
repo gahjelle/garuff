@@ -7,6 +7,7 @@ is a `@staticmethod`. Lambdas are not checked. These cases run end-to-end throug
 a `.py` file so registration and the default option (max 1) are exercised too.
 """
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -15,7 +16,6 @@ from garuff import branding
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
     from tests.lintrun import LintRun
 
@@ -83,7 +83,7 @@ def test_locates_at_the_def_line(
     lint: Callable[[list[str]], LintRun],
 ) -> None:
     """The violation locates to the `def` line and column, not a parameter."""
-    project({"src/mod.py": "def f(a, b):\n    pass\n"})
+    project({"src/mod.py": 'def f(a, b):\n    """Doc."""\n'})
 
     run = lint(["src"])
 
@@ -100,7 +100,9 @@ def test_locates_nested_def_at_its_indented_column(
         {
             "src/mod.py": (
                 "def outer(a):\n"
+                '    """Doc."""\n'
                 "    def inner(x, y):\n"
+                '        """Doc."""\n'
                 "        return x\n"
                 "    return inner\n"
             )
@@ -109,7 +111,7 @@ def test_locates_nested_def_at_its_indented_column(
 
     run = lint(["src"])
 
-    assert run.at("src/mod.py", line=2, col=5) == ["GAC008"]
+    assert run.at("src/mod.py", line=3, col=5) == ["GAC008"]
 
 
 def test_max_positional_args_option_raises_the_ceiling(
@@ -122,8 +124,8 @@ def test_max_positional_args_option_raises_the_ceiling(
         {
             "pyproject.toml": '[project]\nname = "sample"\n'
             f"[{branding.CONFIG_TABLE}.rules.GAC008]\nmax-positional-args = 2\n",
-            "src/two.py": "def f(a, b):\n    pass\n",
-            "src/three.py": "def g(a, b, c):\n    pass\n",
+            "src/two.py": 'def f(a, b):\n    """Doc."""\n',
+            "src/three.py": 'def g(a, b, c):\n    """Doc."""\n',
         }
     )
 

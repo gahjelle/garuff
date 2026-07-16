@@ -33,6 +33,9 @@ dev = [
 "src/garuff/rules/code/possessive_prefix.py" = ["GAC011"]
 "tests/rules/code/test_possessive_prefix.py" = ["GAC011"]
 
+[tool.garuff.rules.GAC007]
+exempt-modules = ["pathlib", "datetime", "typing"]
+
 [tool.garuff.rules.GAC008]
 max_positional_args = 1
 

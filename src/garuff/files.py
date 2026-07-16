@@ -41,7 +41,7 @@ NO_GIT_WARNING = (
 )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class GitScope:
     """Git's view of which files under a root belong to the work-tree.
 
