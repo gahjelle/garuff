@@ -55,6 +55,21 @@ def test_flags_exempt_module_under_type_checking(
     assert run.exit_code == 1
 
 
+def test_flags_exempt_module_under_dotted_type_checking(
+    *,
+    project: Callable[[dict[str, str]], Path],
+    lint: Callable[[list[str]], LintRun],
+) -> None:
+    """The dotted `if typing.TYPE_CHECKING:` guard is recognized too (GAC007)."""
+    source = "import typing\n\nif typing.TYPE_CHECKING:\n    from pathlib import Path\n"
+    project({"pyproject.toml": EXEMPT_PATHLIB, "src/mod.py": source})
+
+    run = lint(["src"])
+
+    assert run.at("src/mod.py", line=4, col=5) == ["GAC007"]
+    assert run.exit_code == 1
+
+
 def test_runtime_import_is_left_alone(
     *,
     project: Callable[[dict[str, str]], Path],

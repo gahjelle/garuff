@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from garuff.rule import SourceRule
+from garuff.rules.code.syntax import is_named
 from garuff.schemas import Location, Violation
 
 if TYPE_CHECKING:
@@ -28,11 +29,7 @@ class TypeCheckingExemptOptions:
 def type_checking_imports(module: ast.Module) -> Iterator[ast.ImportFrom]:
     """Yield each `from ... import ...` directly under an `if TYPE_CHECKING:` block."""
     for node in ast.walk(module):
-        if (
-            isinstance(node, ast.If)
-            and isinstance(node.test, ast.Name)
-            and node.test.id == "TYPE_CHECKING"
-        ):
+        if isinstance(node, ast.If) and is_named(node.test, name="TYPE_CHECKING"):
             for stmt in node.body:
                 if isinstance(stmt, ast.ImportFrom):
                     yield stmt
