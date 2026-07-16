@@ -6,6 +6,7 @@ exit codes are reported, and how violations from different scopes are ordered.
 Where a violation is needed as a fixture, GAC001 is used as a convenient trip.
 """
 
+import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -292,6 +293,113 @@ def test_bare_garuff_prints_help_and_exits_two(
     assert code == 2
     assert "check" in captured.out
     assert "rule" in captured.out  # the help text lists the `rule` subcommand
+
+
+def test_quiet_clean_run_is_silent(
+    *,
+    project: Callable[[dict[str, str]], Path],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """`-q` on a clean run inside a git tree prints nothing at all, exit 0.
+
+    This is the dogfood case. A git work-tree is required for true silence: the
+    git-scope warning is a diagnostic that survives `-q` (asserted separately),
+    so outside a work-tree even a clean run legitimately prints it.
+    """
+    root = project({"src/mod.py": "x = 1\n"})
+    # The fixture chdirs into `root`, so garuff discovers *this* project — git
+    # init it there so the discovered work-tree is the temp project. Without a
+    # work-tree even a clean run prints the git-scope diagnostic (asserted in
+    # test_quiet_keeps_git_scope_warning), so this line is what buys the silence.
+    subprocess.run(["git", "init", "-q", str(root)], check=True)
+
+    code = main(["check", "-q", "src"])
+
+    captured = capsys.readouterr()
+    assert code == 0
+    assert captured.out == ""
+    assert captured.err == ""
+
+
+def test_quiet_drops_summary_but_keeps_findings(
+    *,
+    project: Callable[[dict[str, str]], Path],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """`-q` on a dirty run keeps locators + appendix but drops the summary."""
+    project({"src/mod.py": "from __future__ import annotations\n"})
+
+    code = main(["check", "-q", "src"])
+
+    captured = capsys.readouterr()
+    assert code == 1
+    assert "src/mod.py:1:1: GAC001" in captured.out  # locator survives
+    assert "why" in captured.out  # appendix survives
+    assert "linted" not in captured.err  # summary is gone
+    assert "violation" not in captured.err
+
+
+def test_quiet_keeps_git_scope_warning(
+    *,
+    project: Callable[[dict[str, str]], Path],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """The git-scope warning is a diagnostic, so it survives `-q`."""
+    project(
+        {
+            "src/mod.py": "from __future__ import annotations\n",
+            ".venv/lib/junk.py": "from __future__ import annotations\n",
+        }
+    )
+
+    code = main(["check", "-q", "."])
+
+    captured = capsys.readouterr()
+    assert code == 1
+    assert captured.err.count("not a git repository") == 1
+
+
+def test_quiet_keeps_parse_failure(
+    *,
+    project: Callable[[dict[str, str]], Path],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """A parse failure is a diagnostic, so it still prints under `-q`."""
+    project({"src/bad.py": "def broken(\n"})
+
+    code = main(["check", "-q", "src"])
+
+    captured = capsys.readouterr()
+    assert code == 1
+    assert "src/bad.py" in captured.err
+    assert "could not parse" in captured.err
+    assert "linted" not in captured.err  # but the summary is still dropped
+
+
+def test_quiet_does_not_change_exit_codes(
+    *,
+    project: Callable[[dict[str, str]], Path],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """`-q` changes what is printed, never what is returned — parity on every path."""
+    for files, paths in (
+        ({"src/mod.py": "x = 1\n"}, ["src"]),  # clean → 0
+        ({"src/mod.py": "from __future__ import annotations\n"}, ["src"]),  # dirty → 1
+        (  # broken config → 2
+            {
+                "pyproject.toml": '[project]\nname = "sample"\n'
+                '[tool.garuff]\nignore = ["GAC999"]\n',
+                "src/mod.py": "x = 1\n",
+            },
+            ["src"],
+        ),
+    ):
+        project(files)
+        loud = main(["check", *paths])
+        capsys.readouterr()
+        quiet = main(["check", "-q", *paths])
+        capsys.readouterr()
+        assert quiet == loud
 
 
 def test_help_usage_reflects_program_name(

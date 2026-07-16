@@ -19,6 +19,7 @@ from garuff.explain import (
     resolve_registries,
 )
 from garuff.output import (
+    Verbosity,
     render_appendix,
     render_explanations,
     render_findings,
@@ -36,6 +37,12 @@ def main(argv: list[str] | None = None) -> int:
 
     check_parser = subparsers.add_parser("check", help="lint the given paths")
     check_parser.add_argument("paths", nargs="*", help="files or directories to lint")
+    check_parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="drop the run summary; findings and diagnostics still print",
+    )
 
     rule_parser = subparsers.add_parser("rule", help="explain a rule (or all rules)")
     rule_parser.add_argument("code", nargs="?", help="the rule code to explain")
@@ -47,7 +54,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     if args.command == "rule":
         return explain(code=args.code, all_rules=args.all, parser=rule_parser)
-    return check(paths=args.paths)
+    return check(
+        paths=args.paths,
+        verbosity=Verbosity.QUIET if args.quiet else Verbosity.DEFAULT,
+    )
 
 
 def explain(
@@ -85,8 +95,14 @@ def explain(
     return 0
 
 
-def check(*, paths: list[str]) -> int:
-    """Lint the given paths (default: the project root); return the exit code."""
+def check(*, paths: list[str], verbosity: Verbosity) -> int:
+    """Lint the given paths (default: the project root); return the exit code.
+
+    `verbosity` gates only garuff's own status output: under `Verbosity.QUIET`
+    the run summary is dropped, while findings and diagnostics (parse failures,
+    the git-scope warning, config/path errors) still print. It never changes the
+    returned exit code.
+    """
     try:
         config, scope = resolve(
             start=Path.cwd(), registry=REGISTRY, warn=sys.stderr.write
@@ -125,7 +141,8 @@ def check(*, paths: list[str]) -> int:
         violations=len(result.violations),
         directive_errors=len(result.directive_errors),
     )
-    sys.stderr.write(summary + "\n")
+    if verbosity >= Verbosity.DEFAULT:
+        sys.stderr.write(summary + "\n")
     return (
         1
         if result.violations or result.parse_failures or result.directive_errors

@@ -1,6 +1,7 @@
 """Output — terse locator lines and the agent-facing explanation block."""
 
 import textwrap
+from enum import IntEnum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -8,6 +9,20 @@ if TYPE_CHECKING:
     from garuff.explain import ExplainedRule
     from garuff.rule import Explanation
     from garuff.schemas import DirectiveError, ParseFailure, Violation
+
+
+class Verbosity(IntEnum):
+    """How much of garuff's own output to print — an ordered scale.
+
+    Ordered low-to-high: quieter levels compare *less than* louder ones, so
+    output gates read as thresholds (`verbosity >= Verbosity.DEFAULT`). Only the
+    two shipped levels exist today; `SILENT` (below `QUIET`) and `VERBOSE`
+    (above `DEFAULT`) are the reserved ends — see ADR-0016 and #42.
+    """
+
+    QUIET = 0
+    DEFAULT = 1
+
 
 # The label gutter: each `why`/`fix`/`note` label is right-aligned in this many
 # columns, then two spaces, then the field's text. Continuation lines align
