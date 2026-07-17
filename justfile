@@ -25,10 +25,10 @@ test *args:
 
 # Audit the GitHub Actions workflows for security issues with zizmor.
 audit-workflows:
-    uv run zizmor .github/workflows
+    uv run zizmor .github/workflows -q
 
 # Pin every workflow `uses:` to a commit SHA with gha-update.
-pin:
+pin-workflows:
     uv run gha-update
 
 # Cut a release: bump the CalVer version, re-lock, commit, tag, and push.
