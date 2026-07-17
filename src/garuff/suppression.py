@@ -40,10 +40,13 @@ class Suppressions:
     by_line: dict[int, frozenset[str]]
     errors: list[DirectiveError]
 
+    def suppresses_code(self, code: str, *, line: int | None) -> bool:
+        """Whether a directive on `line` silences `code` — the Edit-side twin."""
+        return code in self.by_line.get(line or 0, frozenset())
+
     def suppresses(self, violation: Violation) -> bool:
         """Report whether a directive on the violation's line silences its code."""
-        codes = self.by_line.get(violation.location.line or 0, frozenset())
-        return violation.rule.code in codes
+        return self.suppresses_code(violation.rule.code, line=violation.location.line)
 
 
 def extract(text: str, *, path: Path, known_codes: frozenset[str]) -> Suppressions:

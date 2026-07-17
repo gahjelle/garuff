@@ -66,6 +66,31 @@ locator lines (ADR-0012). Forty violations of one rule produce forty locator
 lines and one explanation. It is the reason garuff can be verbose about *why*
 without being repetitive.
 
+**Fixer**:
+A rule's optional repair routine — the thing whose *presence* makes a rule
+auto-fixable; a rule without one is report-only. Run only under `garuff check
+--fix`, it mirrors the rule's **Check** — walking the same input and yielding one
+**Edit** per repairable occurrence — but produces changes to apply rather than
+**Violation**s to report. Its method is named `edits`, not `fix`: a rule already
+carries a prose `fix` field (the **Explanation**'s correct-form part), and a
+dataclass field of that name would shadow a same-named method. Fixers are
+reserved for *safe, mechanical, single-site* repairs. A change that would break
+call sites (adding a bare `*`, `kw_only=True`) or needs a coordinated edit
+elsewhere (adding an import for `Self`) is deliberately left to the agent, not
+automated.
+_Avoid_: Autofix (one word), formatter. Not the same as the **Explanation**'s
+prose *fix* — that describes the correct form for a reader; a Fixer performs it.
+
+**Edit**:
+A single located textual change a **Fixer** yields: a half-open character range
+`[start, end)` in the file plus its replacement text, tagged with the repaired
+occurrence's **Location** and carrying the `original` slice it expects (a guard
+that refuses to apply against text that has shifted). One Edit repairs one
+occurrence. An Edit is gated by the same **Ignore** and **Suppression** as the
+**Violation** it would have reported — a suppressed occurrence is neither
+reported nor fixed — and is applied only when its rule is active for that file.
+_Avoid_: Patch, diff, rewrite; *fix* (the Explanation's prose part).
+
 **Rule category**:
 The subject matter a rule is about, encoded as the letter prefix of its code.
 Categorization is by *subject matter, not file extension*: a rule about Python

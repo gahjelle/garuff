@@ -9,13 +9,13 @@ from dataclasses import asdict, dataclass
 from inspect import cleandoc
 from pathlib import Path
 from string import Template
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     import ast
     from collections.abc import Iterator
 
-    from garuff.schemas import Violation
+    from garuff.schemas import Edit, Violation
 
 
 @dataclass(kw_only=True)
@@ -38,6 +38,15 @@ class Rule:
     `inspect.cleandoc`-normalized in `__post_init__`, so an author writes an
     indented triple-quoted literal and never imports `cleandoc`. A subclass that
     adds its own `__post_init__` must call `super().__post_init__()`.
+
+    A rule may also carry an optional `edits` method — its *presence* is what
+    marks the rule auto-fixable under `garuff check --fix`; a rule without one is
+    report-only. This fixer mirrors `check`, walking the same input and yielding
+    one `Edit` per repairable occurrence (see `SourceFixer`/`TextFixer` and
+    ADR-0017). It is deliberately *not* named `fix`: that name is already the
+    prose `fix` field above (the correct-form part of the Explanation), and a
+    dataclass field would shadow a same-named method on every instance. The
+    abstract bases do not declare `edits`, so presence stays a genuine signal.
     """
 
     code: str
@@ -106,3 +115,31 @@ class ProjectRule(Rule, abc.ABC):
     @abc.abstractmethod
     def check(self, project_files: list[Path]) -> Iterator[Violation]:
         """Yield a violation for each place this rule is broken in the project."""
+
+
+@runtime_checkable
+class SourceFixer(Protocol):
+    """A `SourceRule` that also carries a fixer (its presence marks fixability).
+
+    `@runtime_checkable` checks only method *presence*, which is exactly the
+    fixability signal — the runner narrows a source rule to this to decide
+    whether it can be fixed. The fixer's `edits` takes the raw `text` too (beyond
+    the AST `check` sees), because it needs character offsets and the `original`
+    guard. Named `edits`, not `fix`, to avoid the prose `fix` field's shadow.
+    """
+
+    def edits(self, module: ast.Module, *, text: str, path: Path) -> Iterator[Edit]:
+        """Yield one Edit per repairable occurrence found in the module."""
+
+
+@runtime_checkable
+class TextFixer(Protocol):
+    """A `TextRule` that also carries a fixer (its presence marks fixability).
+
+    Defined for symmetry with `SourceFixer`; no text fixer ships yet. A text
+    fixer already has the raw text `check` consumes, so its `edits` takes no
+    extra `text`.
+    """
+
+    def edits(self, text: str, *, path: Path) -> Iterator[Edit]:
+        """Yield one Edit per repairable occurrence found in the text."""

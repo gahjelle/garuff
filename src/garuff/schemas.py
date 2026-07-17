@@ -87,6 +87,26 @@ class Violation:
 
 
 @dataclass(kw_only=True)
+class Edit:
+    """A single located textual change a fixer yields — one repaired occurrence.
+
+    A half-open character range `[start, end)` into the file text, plus the
+    `replacement` to put there. `original` is the slice the fixer expects to
+    find (`text[start:end]`), a guard the apply layer refuses to overwrite when
+    the text has shifted underneath it. `location` is the repaired occurrence's
+    position, used to gate the Edit against suppression exactly as the Violation
+    it would have reported. Passive — the transform lives in `fixes.py` (ADR-0004,
+    ADR-0017).
+    """
+
+    location: Location
+    start: int
+    end: int
+    original: str
+    replacement: str
+
+
+@dataclass(kw_only=True)
 class ParseFailure:
     """A file that could not be parsed, with the location of the failure."""
 
@@ -123,6 +143,7 @@ class RunResult:
     linted_by_suffix: dict[str, int]
     parse_failures: list[ParseFailure] = field(default_factory=list)
     directive_errors: list[DirectiveError] = field(default_factory=list)
+    fixes_applied: int = 0
 
     @property
     def linted(self) -> int:
