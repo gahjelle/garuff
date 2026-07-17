@@ -11,16 +11,25 @@ Work test-first: defer to the `tdd` skill for the red → green → refactor loo
 - A rule's job is to flag the right **violation** at the right location: assert the `CODE` and the `path:line:col` it reports, not the rule's internals.
 - Do not test implementation details; test observable outcomes.
 
-### Exception: pure render geometry
+### Exception: pure-mechanism layers
 
-Rendering layout — the exact gutter, alignment, and continuation of an
-explanation block — is a behaviour a user reads, but pinning it through `main()`
-would couple the assertion to a real rule's prose and wrapping. So the one
-sanctioned unit seam is `output.render_*` asserted as an exact string against a
-*fixture* `Explanation` (see `tests/test_output.py`). This covers geometry only;
-*which* rules appear — dedupe, code-sort, ignored-rule notes — is domain
-behaviour and must still be driven through `main()` (`test_appendix.py`,
-`test_rule_command.py`). Do not reach for this seam for anything but layout.
+A few layers are pure mechanism — their output is a deterministic function of
+their input with no domain judgement of their own — and pinning them through
+`main()` would couple the assertion to a real rule's prose, wrapping, or source.
+Those earn a sanctioned unit seam, asserted as exact values against *fixtures*:
+
+- **`output.render_*`** — explanation-block layout (the exact gutter, alignment,
+  and continuation) asserted as an exact string against a *fixture* `Explanation`
+  (see `tests/test_output.py`). Geometry only.
+- **`fixes.apply_edits`** and its offset helpers — splicing located `Edit`s into
+  new text (high-offset-first, overlap-skipping, `original`-guard mismatch)
+  asserted directly (see `tests/test_fixes.py`). Splice mechanics only.
+
+The list is open: a new layer may join it, but the bar is the same — pure
+mechanism, no domain decision. *Which* rules appear or fire — dedupe, code-sort,
+ignored-rule notes, *which* occurrences a fixer repairs — is domain behaviour and
+must still be driven through `main()` (`test_appendix.py`, `test_rule_command.py`,
+`test_fix.py`). When in doubt, drive it through the CLI.
 
 ## Fixture projects under `tmp_path`
 

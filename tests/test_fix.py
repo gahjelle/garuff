@@ -27,7 +27,7 @@ TWO_POSITIONAL = (  # trips GAC008 only (documented), not fixable
 
 
 @pytest.fixture
-def garuff(capsys: pytest.CaptureFixture[str]) -> Callable[[list[str]], LintRun]:
+def garuff(*, capsys: pytest.CaptureFixture[str]) -> Callable[[list[str]], LintRun]:
     """Run `garuff` with arbitrary argv and parse the outcome as a LintRun."""
 
     def run(argv: list[str]) -> LintRun:
@@ -41,6 +41,7 @@ def garuff(capsys: pytest.CaptureFixture[str]) -> Callable[[list[str]], LintRun]
 
 @pytest.fixture
 def fix(
+    *,
     garuff: Callable[[list[str]], LintRun],
 ) -> Callable[[list[str]], LintRun]:
     """Run `garuff check --fix` over `paths` and parse the outcome, like `lint`."""

@@ -27,6 +27,15 @@ same input through the same shared detection predicate — so the two cannot dri
 about what a violation is — and yields one located `Edit` per occurrence. An
 `Edit` is a single half-open range `[start, end)` plus its `replacement`, tagged
 with the occurrence's `Location` and the `original` slice it expects (a guard).
+
+The shared predicate is one-directional: a fixer's *emitting* predicate may be a
+strict subset of `check`'s *detecting* predicate, never a superset. A fixer may
+decline to repair a genuine violation behind an extra guard — GAC003's `edits`
+skips a `...` whose method has no docstring, because deleting the sole body
+statement would leave an empty suite (`SyntaxError`); `check` still reports it,
+it is simply not auto-fixable. What a fixer must never do is emit an `Edit` for
+something `check` would not flag. So "cannot drift" means the fixer never invents
+a violation, not that it must fix every one it shares.
 Edits are gated by the same suppression/ignore machinery as the violations they
 would have reported, reused unchanged (`config.active`, `per-file-ignores`,
 `Suppressions`).
