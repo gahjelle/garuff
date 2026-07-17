@@ -1,7 +1,7 @@
 default: check
 
 # Run all quality gates in order, stopping on the first failure.
-check: fmt-check lint typecheck dogfood test
+check: fmt-check lint typecheck dogfood test audit-workflows
 
 # Check formatting without writing changes.
 fmt-check:
@@ -22,6 +22,18 @@ dogfood:
 # Run the test suite quietly.
 test *args:
     uv run pytest -q {{args}}
+
+# Audit the GitHub Actions workflows for security issues with zizmor.
+audit-workflows:
+    uv run zizmor .github/workflows
+
+# Pin every workflow `uses:` to a commit SHA with gha-update.
+pin:
+    uv run gha-update
+
+# Cut a release: bump the CalVer version, re-lock, commit, tag, and push.
+release *args:
+    uv run bumpver update {{args}}
 
 # Auto-format the codebase with ruff.
 fmt:
