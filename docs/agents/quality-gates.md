@@ -5,11 +5,18 @@
 1. `just fmt-check` — `uv run ruff format --check`
 2. `just lint` — `uv run ruff check`
 3. `just typecheck` — `uv run ty check` (covers `src/` and `tests/`)
-4. `just test` — `uv run pytest -q`
+4. `just dogfood` — `uv run garuff check -q` (garuff lints its own project root)
+5. `just test` — `uv run pytest -q`
+6. `just audit-workflows` — `uv run zizmor .github/workflows` (workflow security)
 
 A slice is not done until `just check` is green. CI mirrors these exact commands on every push and pull request, so a green CI means the same gate passed remotely.
 
-There is deliberately **no `conventions` gate yet.** garuff's whole purpose is to *be* the convention linter (the `GAC`/`GAA` rules; see `docs/structure-plan.md`), so bootstrapping with a rival linter would just create a second vocabulary to tear out later. Once garuff can lint its own `src/`, it self-hosts and this gate grows a fifth step.
+garuff **self-hosts** — the `dogfood` gate runs garuff's own `GAC`/`GAA` rules (see `docs/structure-plan.md`) over the repo, which is why there is no separate rival-linter `conventions` gate. As rules land, `dogfood` enforces more of garuff's conventions automatically.
+
+Two release-related recipes are **not** part of `check` and are run by hand, not by CI:
+
+- `just pin` — `uv run gha-update`, re-pins every workflow `uses:` to a commit SHA. Run it after editing a workflow.
+- `just release` — `uv run bumpver update`, cuts a CalVer release (bump, re-lock, commit, tag, push). See [ADR-0019](../adr/0019-calver-via-bumpver.md).
 
 ## Quick fixes
 

@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "garuff"
-version = "0.1.0"
+version = "2026.6.0"
 description = "Personal and opinionated Python linter rules aimed at coding agents."
 readme = "README.md"
 authors = [{ name = "Geir Arne Hjelle", email = "geirarne@gmail.com" }]
@@ -16,11 +16,36 @@ garuff = "garuff:main"
 
 [dependency-groups]
 dev = [
+    "bumpver>=2026.1132",
+    "gha-update>=0.2.0",
     "ipython>=9.15.0",
     "prek>=0.4.6",
     "pytest>=9.1.1",
     "ruff>=0.15.20",
     "ty>=0.0.56",
+    "zizmor>=1.27.0",
+]
+
+#
+# Bumpver - CalVer version bumping (see docs/adr/0019-calver-via-bumpver.md)
+#
+[tool.bumpver]
+# The v-prefix lives only in the tag/current_version; `{pep440_version}` strips it
+# so `[project].version` stays a bare PEP 440 string.
+current_version = "v2026.6.0"
+version_pattern = "vYYYY.MM.PATCH"
+commit_message = "bump version {old_version} -> {new_version}"
+tag_message = "{new_version}"
+tag_scope = "default"
+pre_commit_hook = ".pre-commit-bumpver.sh"
+commit = true
+tag = true
+push = true
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = [
+    'current_version = "{version}"',
+    'version = "{pep440_version}"',
 ]
 
 #
