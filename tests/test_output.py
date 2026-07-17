@@ -16,6 +16,7 @@ from garuff.output import (
     render_appendix,
     render_explanation,
     render_explanations,
+    render_summary,
 )
 from garuff.rule import Explanation
 
@@ -93,3 +94,29 @@ def test_appendix_indents_every_non_blank_line_by_two_spaces() -> None:
 
     for line in appendix.splitlines():
         assert line == "" or line.startswith("  "), repr(line)
+
+
+def summary(*, violations: int, fixes: int | None) -> str:
+    """Render a one-`.py`-file summary with the given violation and fixes counts."""
+    return render_summary(
+        linted_by_suffix={".py": 1},
+        skipped=0,
+        violations=violations,
+        fixes=fixes,
+    )
+
+
+def test_summary_omits_the_fixes_clause_on_a_normal_run() -> None:
+    """`fixes=None` (no `--fix`) prints no fixes clause — no `0 fixes` noise."""
+    assert summary(violations=2, fixes=None) == "1 .py file linted: 2 violations"
+
+
+def test_summary_shows_fixes_clause_before_violations_under_fix() -> None:
+    """A `--fix` run inserts the fixes count before the violations count."""
+    assert summary(violations=2, fixes=4) == "1 .py file linted: 4 fixes, 2 violations"
+
+
+def test_summary_fixes_clause_uses_irregular_singular() -> None:
+    """One fix reads `1 fix`, not `1 fixs`; zero and plural read `fixes`."""
+    assert "1 fix, " in summary(violations=0, fixes=1)
+    assert "0 fixes, " in summary(violations=0, fixes=0)

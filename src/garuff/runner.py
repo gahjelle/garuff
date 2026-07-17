@@ -6,7 +6,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from garuff.files import GitScope, gather_files
-from garuff.rule import ProjectRule, SourceRule, TextRule
+from garuff.fixes import apply_edits
+from garuff.rule import ProjectRule, SourceFixer, SourceRule, TextRule
 from garuff.schemas import (
     DirectiveError,
     Location,
@@ -69,7 +70,9 @@ def text_violations(
             yield from rule.check(text, path=path)
 
 
-def run(*, paths: list[Path], config: Config, scope: GitScope) -> RunResult:
+def run(
+    *, paths: list[Path], config: Config, scope: GitScope, fix: bool = False
+) -> RunResult:
     """Run every active source and text rule over the gathered files.
 
     Rule selection is per file: a rule whose code a matching `per-file-ignores`
@@ -83,15 +86,23 @@ def run(*, paths: list[Path], config: Config, scope: GitScope) -> RunResult:
     line carries a matching directive are dropped. Non-`.py` files get no token
     pass, and project rules run outside the loop, so neither is ever suppressed
     inline.
+
+    Under `fix`, each `.py` file first gets a single fix-then-recheck pass: the
+    active, non-ignored source fixers' Edits are collected, suppressed ones
+    dropped, survivors applied high-offset-first, and the result written back
+    only if it still parses (ADR-0017). Violations are then collected from the
+    rewritten text, so only the unfixable remainder is reported.
     """
     active = config.active
     source_rules = [rule for rule in active.rules if isinstance(rule, SourceRule)]
+    source_fixers = [rule for rule in source_rules if isinstance(rule, SourceFixer)]
     text_rules = [rule for rule in active.rules if isinstance(rule, TextRule)]
     project_rules = [rule for rule in active.rules if isinstance(rule, ProjectRule)]
     violations: list[Violation] = []
     parse_failures: list[ParseFailure] = []
     directive_errors: list[DirectiveError] = []
     linted: Counter[str] = Counter()
+    fixes_applied = 0
     files = gather_files(paths=paths, scope=scope)
     for file in files:
         skip = suppressed_codes(file, config=config)
@@ -107,6 +118,25 @@ def run(*, paths: list[Path], config: Config, scope: GitScope) -> RunResult:
             parse_failures.append(parsed)
             continue
         suppressions = extract(text, path=file, known_codes=config.known_codes)
+        if fix:
+            edits = [
+                edit
+                for rule in source_fixers
+                if rule.code not in skip
+                for edit in rule.edits(parsed, text=text, path=file)
+                if not suppressions.suppresses_code(rule.code, line=edit.location.line)
+            ]
+            if edits:
+                new_text, applied = apply_edits(text, edits=edits)
+                reparsed = parse_module(new_text, path=file)
+                if applied and not isinstance(reparsed, ParseFailure):
+                    file.write_text(new_text, encoding="utf-8")
+                    text, parsed = new_text, reparsed
+                    suppressions = extract(
+                        text, path=file, known_codes=config.known_codes
+                    )
+                    fixes_applied += len(applied)
+                # else: safety net — keep original text/parsed, write nothing
         directive_errors.extend(suppressions.errors)
         found = [
             *source_violations(parsed, path=file, rules=source_rules, skip=skip),
@@ -124,4 +154,5 @@ def run(*, paths: list[Path], config: Config, scope: GitScope) -> RunResult:
         linted_by_suffix=dict(linted),
         parse_failures=parse_failures,
         directive_errors=directive_errors,
+        fixes_applied=fixes_applied,
     )

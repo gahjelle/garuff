@@ -108,11 +108,15 @@ def render_summary(
     skipped: int,
     violations: int,
     directive_errors: int = 0,
+    fixes: int | None = None,
 ) -> str:
     """Render the one-line run summary for stderr, split by file extension.
 
     Directive errors are counted separately from violations — they are not rule
-    findings (ADR-0011) — and named only when there are any.
+    findings (ADR-0011) — and named only when there are any. `fixes` is `None`
+    on a normal run (the clause is omitted, so no `0 fixes` noise) and set on a
+    `--fix` run even at `0`, where it precedes the violations count. Its plural
+    is irregular (`fix`/`fixes`), so it does not go through `plural_suffix`.
     """
     extras = sorted(linted_by_suffix.keys() - set(SUMMARY_SUFFIX_ORDER))
     counts = [
@@ -124,7 +128,10 @@ def render_summary(
     summary = f"{files} linted"
     if skipped:
         summary += f" ({skipped} skipped)"
-    summary += f": {violations} violation{plural_suffix(violations)}"
+    summary += ": "
+    if fixes is not None:
+        summary += f"{fixes} {'fix' if fixes == 1 else 'fixes'}, "
+    summary += f"{violations} violation{plural_suffix(violations)}"
     if directive_errors:
         errors = f"{directive_errors} directive error{plural_suffix(directive_errors)}"
         summary += f", {errors}"

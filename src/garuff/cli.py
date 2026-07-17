@@ -43,6 +43,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="drop the run summary; findings and diagnostics still print",
     )
+    check_parser.add_argument(
+        "--fix",
+        action="store_true",
+        help="apply available fixers, then report only what remains",
+    )
 
     rule_parser = subparsers.add_parser("rule", help="explain a rule (or all rules)")
     rule_parser.add_argument("code", nargs="?", help="the rule code to explain")
@@ -57,6 +62,7 @@ def main(argv: list[str] | None = None) -> int:
     return check(
         paths=args.paths,
         verbosity=Verbosity.QUIET if args.quiet else Verbosity.DEFAULT,
+        fix=args.fix,
     )
 
 
@@ -95,13 +101,18 @@ def explain(
     return 0
 
 
-def check(*, paths: list[str], verbosity: Verbosity) -> int:
+def check(*, paths: list[str], verbosity: Verbosity, fix: bool = False) -> int:
     """Lint the given paths (default: the project root); return the exit code.
 
     `verbosity` gates only garuff's own status output: under `Verbosity.QUIET`
     the run summary is dropped, while findings and diagnostics (parse failures,
     the git-scope warning, config/path errors) still print. It never changes the
     returned exit code.
+
+    Under `fix`, available fixers are applied per file before violations are
+    collected, so only the unfixable remainder is reported and the exit code is
+    computed on it. A `--fix` run adds a fixes clause to the summary (even `0`);
+    a normal run omits it entirely.
     """
     try:
         config, scope = resolve(
@@ -121,7 +132,7 @@ def check(*, paths: list[str], verbosity: Verbosity) -> int:
     else:
         resolved = [root]
 
-    result = run(paths=resolved, config=config, scope=scope)
+    result = run(paths=resolved, config=config, scope=scope, fix=fix)
     if result.violations or result.directive_errors:
         locators = render_findings(
             violations=result.violations,
@@ -140,6 +151,7 @@ def check(*, paths: list[str], verbosity: Verbosity) -> int:
         skipped=result.skipped,
         violations=len(result.violations),
         directive_errors=len(result.directive_errors),
+        fixes=result.fixes_applied if fix else None,
     )
     if verbosity >= Verbosity.DEFAULT:
         sys.stderr.write(summary + "\n")
