@@ -25,7 +25,7 @@ test *args:
 
 # Audit the GitHub Actions workflows for security issues with zizmor.
 audit-workflows:
-    uv run zizmor .github/workflows -q
+    uv run zizmor .github/workflows -q --offline
 
 # Pin every workflow `uses:` to a commit SHA with gha-update.
 pin-workflows:
@@ -33,7 +33,7 @@ pin-workflows:
 
 # Cut a release: bump the CalVer version, re-lock, commit, tag, and push.
 release *args:
-    uv run bumpver update {{args}}
+    uv run bumpver update --patch {{args}}
 
 # Auto-format the codebase with ruff.
 fmt:
@@ -43,6 +43,7 @@ fmt:
 fix:
     uv run ruff check --fix -q
     uv run ruff format -q
+    uv run garuff check --fix -q
 
 # Run the prek pre-commit hooks against all files.
 hooks:
